@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/profile.dart';
 import '../../../services/admin_account_service.dart';
 import '../../../services/auth_service.dart';
+import '../../../services/notification_repository.dart';
 import '../../../services/profile_repository.dart';
 import '../../../services/storage_service.dart';
 
@@ -23,6 +24,8 @@ final adminAccountServiceProvider =
     Provider<AdminAccountService>((ref) => AdminAccountService());
 final storageServiceProvider =
     Provider<StorageService>((ref) => StorageService());
+final notificationRepositoryProvider = Provider<NotificationRepository>(
+    (ref) => NotificationRepository(ref.watch(firestoreProvider)));
 
 // ---- Auth state -----------------------------------------------------------
 final authStateProvider = StreamProvider<User?>(

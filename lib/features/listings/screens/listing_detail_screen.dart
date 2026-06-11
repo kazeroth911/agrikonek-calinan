@@ -2,8 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../models/barter_proposal.dart';
 import '../../../models/listing.dart';
+import '../../../models/offer.dart';
 import '../../auth/providers/auth_providers.dart';
+import '../../offers/providers/barter_providers.dart';
+import '../../offers/providers/offer_providers.dart';
+import '../../offers/screens/barter_detail_screen.dart';
+import '../../offers/screens/offer_detail_screen.dart';
+import '../../offers/screens/place_bid_sheet.dart';
+import '../../offers/screens/propose_barter_sheet.dart';
+import '../../offers/widgets/negotiation_widgets.dart';
 import '../../shell/coming_soon_screen.dart';
 import '../providers/listing_providers.dart';
 import '../widgets/listing_card.dart' show listingPriceLabel;
@@ -242,8 +251,8 @@ class _FarmerCard extends ConsumerWidget {
   }
 }
 
-/// Sprint 2 ships the entry points; the full flows arrive later
-/// (bid + barter: Sprint 3, messaging: Sprint 4).
+/// Sprint 3 wires bidding and barter to their real flows; messaging
+/// stays a placeholder until Sprint 4.
 class _BuyerActions extends StatelessWidget {
   const _BuyerActions({
     required this.listing,
@@ -255,33 +264,30 @@ class _BuyerActions extends StatelessWidget {
   final bool forSale;
   final bool forBarter;
 
-  void _goTo(BuildContext context, String title, String sprint) {
-    Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => ComingSoonScreen(title: title, sprintLabel: sprint)));
-  }
-
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         FilledButton.icon(
-          onPressed: () => _goTo(context, 'Messaging', 'Sprint 4'),
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const ComingSoonScreen(
+                  title: 'Messaging', sprintLabel: 'Sprint 4'))),
           icon: const Icon(Icons.chat_bubble_outline),
           label: const Text('Message / Mensahe'),
         ),
         if (forSale) ...[
           const SizedBox(height: 12),
           FilledButton.tonalIcon(
-            onPressed: () => _goTo(context, 'Bidding', 'Sprint 3'),
+            onPressed: () => showPlaceBidSheet(context, listing),
             icon: const Icon(Icons.gavel),
-            label: const Text('Place a Bid'),
+            label: const Text('Place a Bid / Mag-bid'),
           ),
         ],
         if (forBarter) ...[
           const SizedBox(height: 12),
           FilledButton.tonalIcon(
-            onPressed: () => _goTo(context, 'Barter', 'Sprint 3'),
+            onPressed: () => showProposeBarterSheet(context, listing),
             icon: const Icon(Icons.swap_horiz),
             label: const Text('Propose Barter / Baylo'),
           ),
@@ -307,6 +313,7 @@ class _OwnerActions extends ConsumerWidget {
         Text('This is your listing. / Imoha kini nga baligya.',
             style: Theme.of(context).textTheme.bodyMedium),
         const SizedBox(height: 12),
+        _ListingNegotiations(listing: listing),
         if (isActive)
           FilledButton.tonalIcon(
             onPressed: () => repo.closeListing(listing.listingId),
@@ -350,6 +357,77 @@ class _OwnerActions extends ConsumerWidget {
           icon: const Icon(Icons.delete_outline),
           label: const Text('Delete Listing'),
         ),
+      ],
+    );
+  }
+}
+
+/// Owner's live view of negotiations on this listing (Sprint 3) —
+/// compact tiles that tap through to the full detail screens.
+class _ListingNegotiations extends ConsumerWidget {
+  const _ListingNegotiations({required this.listing});
+
+  final Listing listing;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final offers = ref
+        .watch(listingOffersProvider(
+            (listingId: listing.listingId, sellerId: listing.ownerId)))
+        .valueOrNull;
+    final barters = ref
+        .watch(listingBartersProvider(
+            (listingId: listing.listingId, ownerId: listing.ownerId)))
+        .valueOrNull;
+
+    final hasAny =
+        (offers?.isNotEmpty ?? false) || (barters?.isNotEmpty ?? false);
+    if (!hasAny) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Text(
+          'No bids or barter proposals yet. / Wala pay tanyag.',
+          style: theme.textTheme.bodyMedium,
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Negotiations on this listing / Mga tanyag',
+            style: theme.textTheme.titleMedium),
+        const SizedBox(height: 8),
+        for (final offer in offers ?? const <Offer>[])
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.gavel),
+              title: Text('Bid: ${pesos(offer.amount)}'),
+              subtitle: StatusChip(statusName: offer.status.name),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) =>
+                      OfferDetailScreen(offerId: offer.offerId))),
+            ),
+          ),
+        for (final proposal in barters ?? const <BarterProposal>[])
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.swap_horiz),
+              title: Text(
+                'Barter: ${proposal.offeredItems.map((i) => i.toString()).join(', ')}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: StatusChip(statusName: proposal.status.name),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) =>
+                      BarterDetailScreen(barterId: proposal.barterId))),
+            ),
+          ),
+        const SizedBox(height: 12),
       ],
     );
   }

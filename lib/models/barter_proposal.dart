@@ -25,8 +25,40 @@ class BarterItem {
           .join(' ');
 }
 
+/// One entry in a barter proposal's negotiation history (Sprint 3).
+/// Counters carry a note describing the adjusted trade.
+class BarterHistoryEntry {
+  const BarterHistoryEntry({
+    required this.byUserId,
+    required this.action, // propose | counter | accept | reject
+    this.note,
+    this.at,
+  });
+
+  final String byUserId;
+  final String action;
+  final String? note;
+  final DateTime? at;
+
+  Map<String, dynamic> toMap() => {
+        'byUserId': byUserId,
+        'action': action,
+        'note': note,
+        'at': at == null ? Timestamp.now() : Timestamp.fromDate(at!),
+      };
+
+  factory BarterHistoryEntry.fromMap(Map<String, dynamic> map) =>
+      BarterHistoryEntry(
+        byUserId: (map['byUserId'] ?? '') as String,
+        action: (map['action'] ?? 'propose') as String,
+        note: map['note'] as String?,
+        at: (map['at'] as Timestamp?)?.toDate(),
+      );
+}
+
 /// A proposed goods-for-goods exchange between two parties.
-/// ownerId (listing owner) is denormalized for security-rule checks.
+/// ownerId (listing owner) is denormalized for security-rule checks;
+/// listingTitle is denormalized so barter lists render read-free.
 class BarterProposal {
   const BarterProposal({
     required this.barterId,
@@ -35,33 +67,56 @@ class BarterProposal {
     required this.ownerId,
     required this.offeredItems,
     required this.requestedItems,
+    this.listingTitle = '',
     this.note,
     this.status = BarterStatus.pending,
+    this.history = const [],
     this.createdAt,
+    this.updatedAt,
   });
 
   final String barterId;
   final String listingId;
+  final String listingTitle; // denormalized
   final String proposerId;
   final String ownerId;
   final List<BarterItem> offeredItems;
   final List<BarterItem> requestedItems;
   final String? note;
   final BarterStatus status;
+  final List<BarterHistoryEntry> history;
   final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  /// Same negotiation state machine as Offer.canTransition — unit-tested.
+  static bool canTransition(BarterStatus from, BarterStatus to) {
+    switch (from) {
+      case BarterStatus.pending:
+      case BarterStatus.countered:
+        return to == BarterStatus.accepted ||
+            to == BarterStatus.rejected ||
+            to == BarterStatus.countered;
+      case BarterStatus.accepted:
+      case BarterStatus.rejected:
+        return false; // terminal states
+    }
+  }
 
   Map<String, dynamic> toMap() {
     return {
       'listingId': listingId,
+      'listingTitle': listingTitle,
       'proposerId': proposerId,
       'ownerId': ownerId,
       'offeredItems': offeredItems.map((i) => i.toMap()).toList(),
       'requestedItems': requestedItems.map((i) => i.toMap()).toList(),
       'note': note,
       'status': status.name,
+      'history': history.map((h) => h.toMap()).toList(),
       'createdAt': createdAt == null
           ? FieldValue.serverTimestamp()
           : Timestamp.fromDate(createdAt!),
+      'updatedAt': FieldValue.serverTimestamp(),
     };
   }
 
@@ -75,6 +130,7 @@ class BarterProposal {
     return BarterProposal(
       barterId: id,
       listingId: (map['listingId'] ?? '') as String,
+      listingTitle: (map['listingTitle'] ?? '') as String,
       proposerId: (map['proposerId'] ?? '') as String,
       ownerId: (map['ownerId'] ?? '') as String,
       offeredItems: items(map['offeredItems']),
@@ -84,7 +140,13 @@ class BarterProposal {
         (v) => v.name == (map['status'] ?? 'pending'),
         orElse: () => BarterStatus.pending,
       ),
+      history: (map['history'] as List?)
+              ?.map((h) =>
+                  BarterHistoryEntry.fromMap(Map<String, dynamic>.from(h)))
+              .toList() ??
+          const [],
       createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
+      updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
     );
   }
 
