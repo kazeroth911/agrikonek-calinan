@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../core/constants/app_constants.dart';
+
 /// Root entity of the system (Figure 5 of the Capstone paper).
 /// Created by the researcher-admin during field profiling.
 class Profile {
@@ -94,7 +96,9 @@ class Profile {
   Map<String, dynamic> toMap() {
     return {
       'fullName': fullName,
-      'roles': roles,
+      'roles': {
+        for (final role in AppConstants.allRoles) role: roles.contains(role),
+      },
       'barangay': barangay,
       'phone': phone,
       'email': email,
@@ -119,7 +123,7 @@ class Profile {
     return Profile(
       userId: id,
       fullName: (map['fullName'] ?? '') as String,
-      roles: List<String>.from(map['roles'] ?? const []),
+      roles: _rolesFromMap(map['roles']),
       barangay: (map['barangay'] ?? '') as String,
       phone: map['phone'] as String?,
       email: map['email'] as String?,
@@ -141,4 +145,21 @@ class Profile {
 
   factory Profile.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) =>
       Profile.fromMap(doc.id, doc.data() ?? const {});
+
+  /// `roles` is stored as a `{role: bool}` map (e.g. `{admin: true,
+  /// seller: false}`); only roles set to `true` are active. Older
+  /// documents may still store `roles` as a `List<String>` of active
+  /// role names — both shapes are accepted defensively.
+  static List<String> _rolesFromMap(dynamic raw) {
+    if (raw is Map) {
+      return raw.entries
+          .where((e) => e.value == true)
+          .map((e) => e.key.toString())
+          .toList();
+    }
+    if (raw is Iterable) {
+      return List<String>.from(raw);
+    }
+    return const [];
+  }
 }

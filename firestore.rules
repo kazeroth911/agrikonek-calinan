@@ -14,7 +14,7 @@ service cloud.firestore {
     function isAdmin() {
       return isSignedIn()
         && exists(profilePath(request.auth.uid))
-        && ('admin' in get(profilePath(request.auth.uid)).data.roles);
+        && (get(profilePath(request.auth.uid)).data.roles.get('admin', false) == true);
     }
 
     function isOwner(uid) {

@@ -37,5 +37,39 @@ void main() {
       final admin = Profile.fromMap('a', {'roles': ['admin']});
       expect(admin.isAdmin, isTrue);
     });
+
+    test('fromMap reads roles stored as a {role: bool} map', () {
+      final profile = Profile.fromMap('uid123', {
+        'fullName': 'Mang Nelson Alvaro',
+        'roles': {
+          'admin': true,
+          'seller': false,
+          'buyer': true,
+          'trader': false,
+        },
+      });
+
+      expect(profile.roles, containsAll(['admin', 'buyer']));
+      expect(profile.roles, isNot(contains('seller')));
+      expect(profile.roles, isNot(contains('trader')));
+      expect(profile.isAdmin, isTrue);
+    });
+
+    test('toMap writes roles as a {role: bool} map', () {
+      const profile = Profile(
+        userId: 'uid123',
+        fullName: 'Mang Nelson Alvaro',
+        roles: ['seller', 'trader'],
+        barangay: 'Wangan',
+      );
+
+      final map = profile.toMap();
+      expect(map['roles'], {
+        'seller': true,
+        'buyer': false,
+        'trader': true,
+        'admin': false,
+      });
+    });
   });
 }
