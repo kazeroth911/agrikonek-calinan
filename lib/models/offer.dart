@@ -42,6 +42,7 @@ class Offer {
     required this.buyerId,
     required this.sellerId,
     required this.amount,
+    this.listingTitle = '',
     this.currency = 'PHP',
     this.message,
     this.status = OfferStatus.pending,
@@ -52,6 +53,7 @@ class Offer {
 
   final String offerId;
   final String listingId;
+  final String listingTitle; // denormalized — offer lists render read-free
   final String buyerId;
   final String sellerId;
   final num amount;
@@ -79,6 +81,7 @@ class Offer {
   Map<String, dynamic> toMap() {
     return {
       'listingId': listingId,
+      'listingTitle': listingTitle,
       'buyerId': buyerId,
       'sellerId': sellerId,
       'amount': amount,
@@ -97,6 +100,7 @@ class Offer {
     return Offer(
       offerId: id,
       listingId: (map['listingId'] ?? '') as String,
+      listingTitle: (map['listingTitle'] ?? '') as String,
       buyerId: (map['buyerId'] ?? '') as String,
       sellerId: (map['sellerId'] ?? '') as String,
       amount: (map['amount'] ?? 0) as num,

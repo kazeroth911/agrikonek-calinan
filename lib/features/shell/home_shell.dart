@@ -4,10 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../admin/screens/admin_home_screen.dart';
 import '../auth/providers/auth_providers.dart';
 import '../listings/screens/marketplace_screen.dart';
+import '../offers/providers/barter_providers.dart';
+import '../offers/providers/offer_providers.dart';
+import '../offers/screens/my_barters_screen.dart';
+import '../offers/screens/my_offers_screen.dart';
 
 /// Routes the signed-in user by role:
 ///   admin  -> AdminHomeScreen (researcher profiling tools)
-///   others -> MarketplaceScreen (Sprint 2 feed)
+///   others -> bottom-nav shell: Market / Bids / Barters (Sprint 3)
 class HomeShell extends ConsumerWidget {
   const HomeShell({super.key});
 
@@ -22,8 +26,68 @@ class HomeShell extends ConsumerWidget {
       data: (profile) {
         if (profile == null) return const _MissingProfileScreen();
         if (profile.isAdmin) return const AdminHomeScreen();
-        return const MarketplaceScreen();
+        return const _FarmerShell();
       },
+    );
+  }
+}
+
+/// Bottom navigation for farmers/buyers/traders. IndexedStack keeps
+/// each tab's scroll position and stream subscriptions alive, and the
+/// badges show how many negotiations are waiting on the user's move.
+class _FarmerShell extends ConsumerStatefulWidget {
+  const _FarmerShell();
+
+  @override
+  ConsumerState<_FarmerShell> createState() => _FarmerShellState();
+}
+
+class _FarmerShellState extends ConsumerState<_FarmerShell> {
+  int _index = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final offerCount = ref.watch(offersNeedingActionProvider);
+    final barterCount = ref.watch(bartersNeedingActionProvider);
+
+    return Scaffold(
+      body: IndexedStack(
+        index: _index,
+        children: const [
+          MarketplaceScreen(),
+          MyOffersScreen(),
+          MyBartersScreen(),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _index,
+        onDestinationSelected: (i) => setState(() => _index = i),
+        destinations: [
+          const NavigationDestination(
+            icon: Icon(Icons.storefront_outlined),
+            selectedIcon: Icon(Icons.storefront),
+            label: 'Market',
+          ),
+          NavigationDestination(
+            icon: Badge(
+              isLabelVisible: offerCount > 0,
+              label: Text('$offerCount'),
+              child: const Icon(Icons.gavel_outlined),
+            ),
+            selectedIcon: const Icon(Icons.gavel),
+            label: 'Bids',
+          ),
+          NavigationDestination(
+            icon: Badge(
+              isLabelVisible: barterCount > 0,
+              label: Text('$barterCount'),
+              child: const Icon(Icons.swap_horiz_outlined),
+            ),
+            selectedIcon: const Icon(Icons.swap_horiz),
+            label: 'Barter',
+          ),
+        ],
+      ),
     );
   }
 }
