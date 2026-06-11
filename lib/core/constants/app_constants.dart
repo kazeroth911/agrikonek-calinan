@@ -51,4 +51,28 @@ class AppConstants {
     'Seedlings & Feeds',
     'Others',
   ];
+
+  /// Selling units common to Calinan farm produce (post-listing form).
+  static const listingUnits = <String>[
+    'kg',
+    'sack',
+    'tray',
+    'dozen',
+    'piece',
+    'bundle',
+    'head',
+    'liter',
+  ];
+
+  /// Photo cap per listing — keeps uploads cheap on rural data plans
+  /// and Storage usage well inside the free-tier budget.
+  static const maxListingPhotos = 4;
+
+  /// Marketplace feed page size. The pilot cohort is small (~dozens of
+  /// listings) so one capped query keeps Firestore reads predictable.
+  static const feedQueryLimit = 100;
+
+  /// Cloud Storage folder roots.
+  static const storageListingsFolder = 'listings';
+  static const storageProfilesFolder = 'profiles';
 }

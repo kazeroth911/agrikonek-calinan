@@ -6,6 +6,7 @@ import '../../../models/profile.dart';
 import '../../../services/admin_account_service.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/profile_repository.dart';
+import '../../../services/storage_service.dart';
 
 // ---- SDK singletons -------------------------------------------------------
 final firebaseAuthProvider =
@@ -20,6 +21,8 @@ final profileRepositoryProvider = Provider<ProfileRepository>(
     (ref) => ProfileRepository(ref.watch(firestoreProvider)));
 final adminAccountServiceProvider =
     Provider<AdminAccountService>((ref) => AdminAccountService());
+final storageServiceProvider =
+    Provider<StorageService>((ref) => StorageService());
 
 // ---- Auth state -----------------------------------------------------------
 final authStateProvider = StreamProvider<User?>(

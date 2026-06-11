@@ -201,7 +201,7 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: _barangay,
+                initialValue: _barangay,
                 decoration: const InputDecoration(labelText: 'Barangay *'),
                 items: AppConstants.calinanBarangays
                     .map((b) => DropdownMenuItem(value: b, child: Text(b)))

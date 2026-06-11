@@ -1,4 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Firebase needs network access in release builds (debug/profile
+         manifests only cover dev builds). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Geolocator: farm GPS capture (profiling) and the listing-detail
+         distance preview. Requested at runtime; display only. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <application
         android:label="agrikonek_calinan"
         android:name="${applicationName}"
