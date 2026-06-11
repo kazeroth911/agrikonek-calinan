@@ -1,0 +1,144 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+/// Root entity of the system (Figure 5 of the Capstone paper).
+/// Created by the researcher-admin during field profiling.
+class Profile {
+  const Profile({
+    required this.userId,
+    required this.fullName,
+    required this.roles,
+    required this.barangay,
+    this.phone,
+    this.email,
+    this.products = const [],
+    this.barterWillingness = false,
+    this.preferredTradeResources = const [],
+    this.farmLocation,
+    this.farmSizeNote,
+    this.deviceType,
+    this.dataPlan,
+    this.photoUrls = const [],
+    this.consentGiven = false,
+    this.consentUrl,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  final String userId;
+  final String fullName;
+  final List<String> roles; // seller | buyer | trader | admin
+  final String barangay;
+  final String? phone;
+  final String? email;
+
+  /// What the farm produces (durian, eggs, manure, ...).
+  final List<String> products;
+  final bool barterWillingness;
+  final List<String> preferredTradeResources;
+
+  /// Stored only with explicit consent (RA 10173 commitment in §4.12).
+  final GeoPoint? farmLocation;
+  final String? farmSizeNote;
+
+  final String? deviceType;
+  final String? dataPlan;
+  final List<String> photoUrls;
+
+  final bool consentGiven;
+  final String? consentUrl; // photo/scan of signed consent form
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  bool get isAdmin => roles.contains('admin');
+
+  Profile copyWith({
+    String? fullName,
+    List<String>? roles,
+    String? barangay,
+    String? phone,
+    String? email,
+    List<String>? products,
+    bool? barterWillingness,
+    List<String>? preferredTradeResources,
+    GeoPoint? farmLocation,
+    String? farmSizeNote,
+    String? deviceType,
+    String? dataPlan,
+    List<String>? photoUrls,
+    bool? consentGiven,
+    String? consentUrl,
+  }) {
+    return Profile(
+      userId: userId,
+      fullName: fullName ?? this.fullName,
+      roles: roles ?? this.roles,
+      barangay: barangay ?? this.barangay,
+      phone: phone ?? this.phone,
+      email: email ?? this.email,
+      products: products ?? this.products,
+      barterWillingness: barterWillingness ?? this.barterWillingness,
+      preferredTradeResources:
+          preferredTradeResources ?? this.preferredTradeResources,
+      farmLocation: farmLocation ?? this.farmLocation,
+      farmSizeNote: farmSizeNote ?? this.farmSizeNote,
+      deviceType: deviceType ?? this.deviceType,
+      dataPlan: dataPlan ?? this.dataPlan,
+      photoUrls: photoUrls ?? this.photoUrls,
+      consentGiven: consentGiven ?? this.consentGiven,
+      consentUrl: consentUrl ?? this.consentUrl,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'fullName': fullName,
+      'roles': roles,
+      'barangay': barangay,
+      'phone': phone,
+      'email': email,
+      'products': products,
+      'barterWillingness': barterWillingness,
+      'preferredTradeResources': preferredTradeResources,
+      'farmLocation': farmLocation,
+      'farmSizeNote': farmSizeNote,
+      'deviceType': deviceType,
+      'dataPlan': dataPlan,
+      'photoUrls': photoUrls,
+      'consentGiven': consentGiven,
+      'consentUrl': consentUrl,
+      'createdAt': createdAt == null
+          ? FieldValue.serverTimestamp()
+          : Timestamp.fromDate(createdAt!),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+  }
+
+  factory Profile.fromMap(String id, Map<String, dynamic> map) {
+    return Profile(
+      userId: id,
+      fullName: (map['fullName'] ?? '') as String,
+      roles: List<String>.from(map['roles'] ?? const []),
+      barangay: (map['barangay'] ?? '') as String,
+      phone: map['phone'] as String?,
+      email: map['email'] as String?,
+      products: List<String>.from(map['products'] ?? const []),
+      barterWillingness: (map['barterWillingness'] ?? false) as bool,
+      preferredTradeResources:
+          List<String>.from(map['preferredTradeResources'] ?? const []),
+      farmLocation: map['farmLocation'] as GeoPoint?,
+      farmSizeNote: map['farmSizeNote'] as String?,
+      deviceType: map['deviceType'] as String?,
+      dataPlan: map['dataPlan'] as String?,
+      photoUrls: List<String>.from(map['photoUrls'] ?? const []),
+      consentGiven: (map['consentGiven'] ?? false) as bool,
+      consentUrl: map['consentUrl'] as String?,
+      createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
+      updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
+    );
+  }
+
+  factory Profile.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) =>
+      Profile.fromMap(doc.id, doc.data() ?? const {});
+}

@@ -1,0 +1,98 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- helpers -------------------------------------------------------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function profilePath(uid) {
+      return /databases/$(database)/documents/profiles/$(uid);
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && exists(profilePath(request.auth.uid))
+        && ('admin' in get(profilePath(request.auth.uid)).data.roles);
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // ---- profiles ------------------------------------------------------
+    // Read: any signed-in user (marketplace needs names/barangays).
+    // Create/full update: admin only (researcher-led profiling).
+    // Owners may update only their own non-privileged fields.
+    match /profiles/{userId} {
+      allow read: if isSignedIn();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin()
+        || (isOwner(userId)
+            && !request.resource.data.diff(resource.data)
+                 .affectedKeys().hasAny(['roles', 'createdAt', 'consentUrl']));
+    }
+
+    // ---- listings ------------------------------------------------------
+    match /listings/{listingId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isSignedIn()
+        && (resource.data.ownerId == request.auth.uid || isAdmin());
+    }
+
+    // ---- offers (bids) -------------------------------------------------
+    // Visible only to buyer, listing owner, and admin.
+    match /offers/{offerId} {
+      allow read: if isSignedIn()
+        && (resource.data.buyerId == request.auth.uid
+            || resource.data.sellerId == request.auth.uid
+            || isAdmin());
+      allow create: if isSignedIn()
+        && request.resource.data.buyerId == request.auth.uid;
+      allow update: if isSignedIn()
+        && (resource.data.buyerId == request.auth.uid
+            || resource.data.sellerId == request.auth.uid);
+    }
+
+    // ---- barter proposals ----------------------------------------------
+    match /barterProposals/{barterId} {
+      allow read: if isSignedIn()
+        && (resource.data.proposerId == request.auth.uid
+            || resource.data.ownerId == request.auth.uid
+            || isAdmin());
+      allow create: if isSignedIn()
+        && request.resource.data.proposerId == request.auth.uid;
+      allow update: if isSignedIn()
+        && (resource.data.proposerId == request.auth.uid
+            || resource.data.ownerId == request.auth.uid);
+    }
+
+    // ---- conversations & messages --------------------------------------
+    match /conversations/{conversationId} {
+      allow read, update: if isSignedIn()
+        && request.auth.uid in resource.data.participantIds;
+      allow create: if isSignedIn()
+        && request.auth.uid in request.resource.data.participantIds;
+
+      match /messages/{messageId} {
+        allow read: if isSignedIn()
+          && request.auth.uid in
+             get(/databases/$(database)/documents/conversations/$(conversationId))
+               .data.participantIds;
+        allow create: if isSignedIn()
+          && request.resource.data.senderId == request.auth.uid;
+        allow update: if isSignedIn(); // readBy updates
+      }
+    }
+
+    // ---- notifications --------------------------------------------------
+    match /notifications/{notificationId} {
+      allow read, update: if isSignedIn()
+        && resource.data.recipientId == request.auth.uid;
+      allow create: if isSignedIn();
+    }
+  }
+}
