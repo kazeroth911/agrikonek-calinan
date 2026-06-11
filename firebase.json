@@ -1,1 +1,41 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"agrikonek-calinan","appId":"1:1020993244747:android:b6d8b09ab7970e284947ce","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"agrikonek-calinan","configurations":{"android":"1:1020993244747:android:b6d8b09ab7970e284947ce"}}}}}}
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "emulators": {
+    "auth": {
+      "port": 9099
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "storage": {
+      "port": 9199
+    },
+    "ui": {
+      "enabled": true
+    }
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "agrikonek-calinan",
+          "appId": "1:1020993244747:android:b6d8b09ab7970e284947ce",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "agrikonek-calinan",
+          "configurations": {
+            "android": "1:1020993244747:android:b6d8b09ab7970e284947ce"
+          }
+        }
+      }
+    }
+  }
+}

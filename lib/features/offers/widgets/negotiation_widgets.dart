@@ -1,0 +1,125 @@
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
+final _pesoFormat = NumberFormat('#,##0.##');
+
+String pesos(num amount) => '₱${_pesoFormat.format(amount)}';
+
+/// Bilingual labels for the shared pending/accepted/rejected/countered
+/// state machine (OfferStatus and BarterStatus have identical names).
+String negotiationStatusLabel(String statusName) {
+  switch (statusName) {
+    case 'pending':
+      return 'Pending / Naghulat';
+    case 'accepted':
+      return 'Accepted / Gidawat';
+    case 'rejected':
+      return 'Rejected / Wala gidawat';
+    case 'countered':
+      return 'Countered / Gi-counter';
+    default:
+      return statusName;
+  }
+}
+
+/// Bilingual labels for history actions (bid/propose/counter/accept/reject).
+String negotiationActionLabel(String action) {
+  switch (action) {
+    case 'bid':
+      return 'placed a bid / nag-bid';
+    case 'propose':
+      return 'proposed a trade / nagtanyag og baylo';
+    case 'counter':
+      return 'countered / ni-counter';
+    case 'accept':
+      return 'accepted / midawat';
+    case 'reject':
+      return 'rejected / wala midawat';
+    default:
+      return action;
+  }
+}
+
+class StatusChip extends StatelessWidget {
+  const StatusChip({super.key, required this.statusName});
+
+  final String statusName;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final (bg, fg) = switch (statusName) {
+      'accepted' => (scheme.primaryContainer, scheme.onPrimaryContainer),
+      'rejected' => (scheme.errorContainer, scheme.onErrorContainer),
+      'countered' => (scheme.tertiaryContainer, scheme.onTertiaryContainer),
+      _ => (scheme.secondaryContainer, scheme.onSecondaryContainer),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        negotiationStatusLabel(statusName),
+        style: Theme.of(context)
+            .textTheme
+            .labelMedium
+            ?.copyWith(color: fg, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+}
+
+/// "Your move" marker shown on list tiles when the negotiation is
+/// waiting on the signed-in user.
+class YourMoveBadge extends StatelessWidget {
+  const YourMoveBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: scheme.primary,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        'Your move / Ikaw na',
+        style: Theme.of(context)
+            .textTheme
+            .labelSmall
+            ?.copyWith(color: scheme.onPrimary, fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+}
+
+/// Shared empty/error body for negotiation lists.
+class NegotiationListMessage extends StatelessWidget {
+  const NegotiationListMessage(
+      {super.key, required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 56),
+            const SizedBox(height: 16),
+            Text(text, textAlign: TextAlign.center),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+final negotiationDateLabel = DateFormat('MMM d, h:mm a');
