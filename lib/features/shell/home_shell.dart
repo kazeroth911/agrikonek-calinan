@@ -3,10 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../admin/screens/admin_home_screen.dart';
 import '../auth/providers/auth_providers.dart';
+import '../listings/screens/marketplace_screen.dart';
 
 /// Routes the signed-in user by role:
 ///   admin  -> AdminHomeScreen (researcher profiling tools)
-///   others -> Marketplace placeholder (Sprint 2)
+///   others -> MarketplaceScreen (Sprint 2 feed)
 class HomeShell extends ConsumerWidget {
   const HomeShell({super.key});
 
@@ -21,7 +22,7 @@ class HomeShell extends ConsumerWidget {
       data: (profile) {
         if (profile == null) return const _MissingProfileScreen();
         if (profile.isAdmin) return const AdminHomeScreen();
-        return _MarketplacePlaceholder(name: profile.fullName);
+        return const MarketplaceScreen();
       },
     );
   }
@@ -60,40 +61,6 @@ class _MissingProfileScreen extends ConsumerWidget {
                 child: const Text('Sign out'),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Stand-in until Sprint 2's marketplace feed lands. Proves the
-/// vertical slice: farmer signs in -> their Firestore profile renders.
-class _MarketplacePlaceholder extends ConsumerWidget {
-  const _MarketplacePlaceholder({required this.name});
-  final String name;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Calinan Marketplace'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Sign out',
-            onPressed: () => ref.read(authServiceProvider).signOut(),
-          ),
-        ],
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            'Maayong adlaw, $name!\n\n'
-            'The marketplace feed arrives in Sprint 2.',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleLarge,
           ),
         ),
       ),

@@ -54,8 +54,11 @@ class ProfilingController {
       password: password,
     );
 
-    // 2. Photos.
-    final photoUrls = <String>[]; // Storage enabled in Sprint 2
+    // 2. Photos — best-effort: an empty result means Storage is
+    // unavailable (Spark tier / offline) and the profile saves photo-less.
+    final photoUrls = await _ref
+        .read(storageServiceProvider)
+        .uploadProfilePhotos(uid: uid, files: photos);
 
     // 3. Profile document keyed by the auth uid.
     final profile = Profile(
