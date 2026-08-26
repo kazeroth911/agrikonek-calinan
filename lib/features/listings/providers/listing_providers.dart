@@ -19,8 +19,14 @@ final searchQueryProvider = StateProvider<String>((ref) => '');
 /// One Firestore subscription feeds every chip/search combination —
 /// category and keyword are applied client-side below, so switching
 /// filters never re-reads documents (free-tier read protection).
-final listingFeedProvider = StreamProvider<List<Listing>>(
-    (ref) => ref.watch(listingRepositoryProvider).watchFeed());
+final listingFeedProvider = StreamProvider<List<Listing>>((ref) {
+  // Re-subscribe on every auth change. Without this, a sign-out cancels
+  // the live snapshot listener with permission-denied, the provider
+  // caches that AsyncError, and the next signed-in user inherits it
+  // since nothing else would tell Riverpod to rebuild this provider.
+  ref.watch(authStateProvider);
+  return ref.watch(listingRepositoryProvider).watchFeed();
+});
 
 /// The feed the marketplace screen actually renders: category chip +
 /// keyword search applied over the live stream.
@@ -38,9 +44,13 @@ final filteredFeedProvider = Provider<AsyncValue<List<Listing>>>((ref) {
   });
 });
 
-final listingDetailProvider = StreamProvider.family<Listing?, String>(
-    (ref, listingId) =>
-        ref.watch(listingRepositoryProvider).watchListing(listingId));
+final listingDetailProvider =
+    StreamProvider.family<Listing?, String>((ref, listingId) {
+  // Re-subscribe on auth change so a sign-out's permission-denied error
+  // is not cached and served to the next user viewing the same listing.
+  ref.watch(authStateProvider);
+  return ref.watch(listingRepositoryProvider).watchListing(listingId);
+});
 
 /// The signed-in user's own listings (any status) for self-management.
 final myListingsProvider = StreamProvider<List<Listing>>((ref) {
@@ -52,8 +62,13 @@ final myListingsProvider = StreamProvider<List<Listing>>((ref) {
 // ---- Distance preview (display only, per panel decision) -----------------
 /// The listing owner's profile — one read, cached by family argument,
 /// used for the farm location on the detail screen.
-final ownerProfileProvider = FutureProvider.family<Profile?, String>(
-    (ref, ownerId) => ref.watch(profileRepositoryProvider).getProfile(ownerId));
+final ownerProfileProvider =
+    FutureProvider.family<Profile?, String>((ref, ownerId) {
+  // Re-fetch on auth change so a get() interrupted by sign-out cannot
+  // leave a cached permission-denied error for the next user.
+  ref.watch(authStateProvider);
+  return ref.watch(profileRepositoryProvider).getProfile(ownerId);
+});
 
 /// Straight-line distance in km between this device and the listing
 /// owner's consented farm location. Returns null whenever anything is

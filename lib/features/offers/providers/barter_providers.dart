@@ -29,18 +29,24 @@ final myBarterProposalsProvider = StreamProvider<List<BarterProposal>>((ref) {
 });
 
 /// One proposal, live, for the detail screen.
-final barterDetailProvider = StreamProvider.family<BarterProposal?, String>(
-    (ref, barterId) =>
-        ref.watch(barterRepositoryProvider).watchBarterProposal(barterId));
+final barterDetailProvider =
+    StreamProvider.family<BarterProposal?, String>((ref, barterId) {
+  // Re-subscribe on auth change: a proposer↔owner account switch must not
+  // serve the previous user's cached permission-denied for this proposal.
+  ref.watch(authStateProvider);
+  return ref.watch(barterRepositoryProvider).watchBarterProposal(barterId);
+});
 
 /// All proposals on one listing, for its owner (the listing detail
 /// screen's owner view). Record argument gives the family value equality.
 final listingBartersProvider = StreamProvider.family<List<BarterProposal>,
-        ({String listingId, String ownerId})>(
-    (ref, args) => ref
-        .watch(barterRepositoryProvider)
-        .watchBarterProposalsForListing(
-            listingId: args.listingId, ownerId: args.ownerId));
+    ({String listingId, String ownerId})>((ref, args) {
+  ref.watch(authStateProvider);
+  return ref
+      .watch(barterRepositoryProvider)
+      .watchBarterProposalsForListing(
+          listingId: args.listingId, ownerId: args.ownerId);
+});
 
 /// Barter items waiting on MY move — drives the bottom-nav badge.
 final bartersNeedingActionProvider = Provider<int>((ref) {
