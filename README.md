@@ -2,6 +2,10 @@
 
 AgriKonek Calinan is an Android marketplace and connectivity application for pre-profiled smallholder farmers in Calinan District, Davao City. It supports farmer profiles, produce listings, cash offers, barter proposals, notifications, and role-based access.
 
+## New developer setup
+
+Setting up for the first time? Follow the **[complete Windows and Android setup guide](docs/SETUP_GUIDE.md)**. It covers every required download, GitHub access, Flutter and Android Studio installation, emulator and physical-phone setup, Firebase, the first run, troubleshooting, and the team Git workflow.
+
 ## Technology
 
 - Flutter and Dart
