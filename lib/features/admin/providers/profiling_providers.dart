@@ -8,8 +8,15 @@ import '../../../services/admin_account_service.dart';
 import '../../auth/providers/auth_providers.dart';
 
 /// Stream of all profiles for the admin list (optionally filtered later).
-final allProfilesProvider = StreamProvider<List<Profile>>(
-    (ref) => ref.watch(profileRepositoryProvider).watchAllProfiles());
+///
+/// Re-subscribes on every auth change. Without this, a sign-out cancels
+/// the live snapshot listener with permission-denied, the provider caches
+/// that AsyncError, and the next signed-in admin inherits it since nothing
+/// else would tell Riverpod to rebuild this provider.
+final allProfilesProvider = StreamProvider<List<Profile>>((ref) {
+  ref.watch(authStateProvider);
+  return ref.watch(profileRepositoryProvider).watchAllProfiles();
+});
 
 /// Result handed back to the form so the researcher can print/write
 /// the credential slip for the farmer (paper §3.4 workflow 1).

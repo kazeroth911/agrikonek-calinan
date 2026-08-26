@@ -25,15 +25,22 @@ final myOffersProvider = StreamProvider<List<Offer>>((ref) {
 });
 
 /// One offer, live, for the detail screen.
-final offerDetailProvider = StreamProvider.family<Offer?, String>(
-    (ref, offerId) => ref.watch(offerRepositoryProvider).watchOffer(offerId));
+final offerDetailProvider =
+    StreamProvider.family<Offer?, String>((ref, offerId) {
+  // Re-subscribe on auth change: a buyer↔seller account switch must not
+  // serve the previous user's cached permission-denied for this offer.
+  ref.watch(authStateProvider);
+  return ref.watch(offerRepositoryProvider).watchOffer(offerId);
+});
 
 /// All bids on one listing, for its seller (the listing detail screen's
 /// owner view). Record argument gives the family value equality.
 final listingOffersProvider = StreamProvider.family<List<Offer>,
-        ({String listingId, String sellerId})>(
-    (ref, args) => ref.watch(offerRepositoryProvider).watchOffersForListing(
-        listingId: args.listingId, sellerId: args.sellerId));
+    ({String listingId, String sellerId})>((ref, args) {
+  ref.watch(authStateProvider);
+  return ref.watch(offerRepositoryProvider).watchOffersForListing(
+      listingId: args.listingId, sellerId: args.sellerId);
+});
 
 /// How many incoming/sent items are waiting on MY move — drives the
 /// bottom-nav badge so a farmer never misses an open negotiation.

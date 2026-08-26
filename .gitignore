@@ -4,6 +4,9 @@
 *.pyc
 *.swp
 .DS_Store
+.env
+.env.*
+!.env.example
 .atom/
 .build/
 .buildlog/
@@ -11,6 +14,15 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
+
+# Local AI/editor configuration and temporary work
+/.claude/
+/tmp/
+
+# Never commit Firebase Admin/service-account credentials
+*service-account*.json
+firebase-adminsdk-*.json
+serviceAccountKey.json
 
 # IntelliJ related
 *.iml
