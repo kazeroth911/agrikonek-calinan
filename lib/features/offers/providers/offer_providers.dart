@@ -57,8 +57,8 @@ final offersNeedingActionProvider = Provider<int>((ref) {
 
 // ---- Controller -------------------------------------------------------------
 /// Orchestrates each negotiation move: validated Firestore write first,
-/// then the client-side notification document for the other party
-/// (Cloud Functions deferred per approved plan).
+/// then the client-side notification document for the other party.
+/// The sendPushOnNotification Cloud Function turns it into a phone push.
 final offerControllerProvider =
     Provider<OfferController>((ref) => OfferController(ref));
 
@@ -76,10 +76,13 @@ class OfferController {
         'amount': amount,
       };
 
-  Future<void> _notify(String recipientId, Map<String, dynamic> payload) {
-    return _ref
-        .read(notificationRepositoryProvider)
-        .notify(recipientId: recipientId, type: 'bid', payload: payload);
+  Future<void> _notify(
+      String recipientId, String senderId, Map<String, dynamic> payload) {
+    return _ref.read(notificationRepositoryProvider).notify(
+        recipientId: recipientId,
+        senderId: senderId,
+        type: 'bid',
+        payload: payload);
   }
 
   /// Returns the buyer's open offer on this listing if one exists —
@@ -103,7 +106,7 @@ class OfferController {
       amount: amount,
       message: message,
     );
-    await _notify(listing.ownerId, {
+    await _notify(listing.ownerId, buyerId, {
       'offerId': offerId,
       'listingId': listing.listingId,
       'listingTitle': listing.title,
@@ -115,14 +118,14 @@ class OfferController {
   Future<void> accept({required Offer offer, required String byUserId}) async {
     await _repo.updateOfferStatus(
         offer: offer, byUserId: byUserId, to: OfferStatus.accepted);
-    await _notify(_otherParty(offer, byUserId),
+    await _notify(_otherParty(offer, byUserId), byUserId,
         _payload(offer, 'accept', offer.amount));
   }
 
   Future<void> reject({required Offer offer, required String byUserId}) async {
     await _repo.updateOfferStatus(
         offer: offer, byUserId: byUserId, to: OfferStatus.rejected);
-    await _notify(_otherParty(offer, byUserId),
+    await _notify(_otherParty(offer, byUserId), byUserId,
         _payload(offer, 'reject', offer.amount));
   }
 
@@ -136,8 +139,8 @@ class OfferController {
         byUserId: byUserId,
         to: OfferStatus.countered,
         counterAmount: amount);
-    await _notify(
-        _otherParty(offer, byUserId), _payload(offer, 'counter', amount));
+    await _notify(_otherParty(offer, byUserId), byUserId,
+        _payload(offer, 'counter', amount));
   }
 
   String _otherParty(Offer offer, String byUserId) =>

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../auth/providers/auth_providers.dart';
+import '../../notifications/widgets/notification_bell.dart';
 import '../providers/listing_providers.dart';
 import '../widgets/listing_card.dart';
 import 'listing_detail_screen.dart';
@@ -22,6 +23,7 @@ class MarketplaceScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Calinan Marketplace'),
         actions: [
+          const NotificationBell(),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Sign out',

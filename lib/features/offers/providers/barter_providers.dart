@@ -62,7 +62,8 @@ final bartersNeedingActionProvider = Provider<int>((ref) {
 
 // ---- Controller -------------------------------------------------------------
 /// Validated write first, then the client-side notification document
-/// for the other party (Cloud Functions deferred per approved plan).
+/// for the other party. The sendPushOnNotification Cloud Function turns
+/// it into a phone push.
 final barterControllerProvider =
     Provider<BarterController>((ref) => BarterController(ref));
 
@@ -72,10 +73,11 @@ class BarterController {
 
   BarterRepository get _repo => _ref.read(barterRepositoryProvider);
 
-  Future<void> _notify(String recipientId, BarterProposal proposal,
-      String action, String barterId) {
+  Future<void> _notify(String recipientId, String senderId,
+      BarterProposal proposal, String action, String barterId) {
     return _ref.read(notificationRepositoryProvider).notify(
       recipientId: recipientId,
+      senderId: senderId,
       type: 'barter',
       payload: {
         'barterId': barterId,
@@ -102,6 +104,7 @@ class BarterController {
     );
     await _ref.read(notificationRepositoryProvider).notify(
       recipientId: listing.ownerId,
+      senderId: proposerId,
       type: 'barter',
       payload: {
         'barterId': barterId,
@@ -116,7 +119,7 @@ class BarterController {
       {required BarterProposal proposal, required String byUserId}) async {
     await _repo.updateBarterStatus(
         proposal: proposal, byUserId: byUserId, to: BarterStatus.accepted);
-    await _notify(_otherParty(proposal, byUserId), proposal, 'accept',
+    await _notify(_otherParty(proposal, byUserId), byUserId, proposal, 'accept',
         proposal.barterId);
   }
 
@@ -124,7 +127,7 @@ class BarterController {
       {required BarterProposal proposal, required String byUserId}) async {
     await _repo.updateBarterStatus(
         proposal: proposal, byUserId: byUserId, to: BarterStatus.rejected);
-    await _notify(_otherParty(proposal, byUserId), proposal, 'reject',
+    await _notify(_otherParty(proposal, byUserId), byUserId, proposal, 'reject',
         proposal.barterId);
   }
 
@@ -138,7 +141,7 @@ class BarterController {
         byUserId: byUserId,
         to: BarterStatus.countered,
         counterNote: note);
-    await _notify(_otherParty(proposal, byUserId), proposal, 'counter',
+    await _notify(_otherParty(proposal, byUserId), byUserId, proposal, 'counter',
         proposal.barterId);
   }
 

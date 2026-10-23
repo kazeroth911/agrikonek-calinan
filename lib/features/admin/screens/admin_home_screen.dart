@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../auth/providers/auth_providers.dart';
+import '../../notifications/widgets/notification_bell.dart';
 import 'profile_list_screen.dart';
 import 'profiling_form_screen.dart';
 
@@ -18,6 +19,7 @@ class AdminHomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('AgriKonek — Researcher'),
         actions: [
+          const NotificationBell(),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Sign out',

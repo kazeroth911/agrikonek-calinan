@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/offer.dart';
 import '../../../services/offer_repository.dart';
 import '../../auth/providers/auth_providers.dart';
+import '../../notifications/widgets/notification_bell.dart';
 import '../providers/offer_providers.dart';
 import '../widgets/negotiation_widgets.dart';
 import 'offer_detail_screen.dart';
@@ -20,6 +21,7 @@ class MyOffersScreen extends ConsumerWidget {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Bids / Mga Tanyag'),
+          actions: const [NotificationBell()],
           bottom: const TabBar(tabs: [
             Tab(text: 'Incoming / Padulong'),
             Tab(text: 'Sent / Gipadala'),

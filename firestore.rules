@@ -89,10 +89,76 @@ service cloud.firestore {
     }
 
     // ---- notifications --------------------------------------------------
+    // The app writes one record per negotiation move; the Cloud Function
+    // sendPushOnNotification then sends the FCM push (DFD process 6.0).
+    // A user may only notify the other party of a bid, barter or chat
+    // they are actually part of, so nobody can spam arbitrary accounts.
+    function docData(path) {
+      return get(path).data;
+    }
+
+    function isPair(a, b, x, y) {
+      return (a == x && b == y) || (a == y && b == x);
+    }
+
+    function validNotificationShape(d) {
+      return d.keys().hasOnly(['recipientId', 'senderId', 'type', 'payload', 'read', 'createdAt'])
+        && d.keys().hasAll(['recipientId', 'senderId', 'type', 'payload', 'read', 'createdAt'])
+        && d.senderId == request.auth.uid
+        && d.recipientId is string
+        && d.recipientId != request.auth.uid
+        && d.type in ['bid', 'barter', 'msg', 'admin']
+        && d.payload is map
+        && d.read == false
+        && d.createdAt == request.time;
+    }
+
+    function senderIsParty(d) {
+      return (d.type == 'bid'
+          && isPair(d.senderId, d.recipientId,
+               docData(/databases/$(database)/documents/offers/$(d.payload.offerId)).buyerId,
+               docData(/databases/$(database)/documents/offers/$(d.payload.offerId)).sellerId))
+        || (d.type == 'barter'
+          && isPair(d.senderId, d.recipientId,
+               docData(/databases/$(database)/documents/barterProposals/$(d.payload.barterId)).proposerId,
+               docData(/databases/$(database)/documents/barterProposals/$(d.payload.barterId)).ownerId))
+        || (d.type == 'msg'
+          && d.senderId in docData(/databases/$(database)/documents/conversations/$(d.payload.conversationId)).participantIds
+          && d.recipientId in docData(/databases/$(database)/documents/conversations/$(d.payload.conversationId)).participantIds)
+        || (d.type == 'admin' && isAdmin());
+    }
+
     match /notifications/{notificationId} {
-      allow read, update: if isSignedIn()
+      allow read: if isSignedIn()
         && resource.data.recipientId == request.auth.uid;
-      allow create: if isSignedIn();
+      // Only the recipient can change read from false to true.
+      allow update: if isSignedIn()
+        && resource.data.recipientId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+        && request.resource.data.read == true;
+      allow create: if isSignedIn()
+        && validNotificationShape(request.resource.data)
+        && senderIsParty(request.resource.data);
+      allow delete: if false;
+    }
+
+    // ---- private FCM device tokens -------------------------------------
+    // Each signed-in user can manage only their own device registrations.
+    match /deviceTokens/{userId}/tokens/{tokenId} {
+      allow read: if isOwner(userId);
+
+      allow create, update: if isOwner(userId)
+        && request.resource.data.keys().hasOnly([
+          'token', 'platform', 'updatedAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'token', 'platform', 'updatedAt'
+        ])
+        && request.resource.data.token is string
+        && request.resource.data.platform == 'android'
+        && request.resource.data.updatedAt is timestamp;
+
+      allow delete: if isOwner(userId);
     }
   }
 }

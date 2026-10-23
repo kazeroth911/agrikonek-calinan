@@ -8,7 +8,7 @@
 
 ## The 30-second explanation
 
-AgriKonek Calinan is an Android-oriented mobile marketplace for pre-profiled farmers, buyers, and traders in Calinan District. A researcher-admin creates verified user profiles; users then post agricultural products, search the live marketplace, submit cash bids or barter proposals, and negotiate through controlled accept, reject, and counter actions. Flutter provides the interface, Riverpod manages application state, and Firebase handles authentication, real-time records, and photo storage. The present prototype passes 49 unit tests and static analysis, but chat, push notifications, end-to-end Firebase testing, and field-based usability evaluation are not yet fully demonstrated in the repository.
+AgriKonek Calinan is an Android-oriented mobile marketplace for pre-profiled farmers, buyers, and traders in Calinan District. A researcher-admin creates verified user profiles; users then post agricultural products, search the live marketplace, submit cash bids or barter proposals, and negotiate through controlled accept, reject, and counter actions. Flutter provides the interface, Riverpod manages application state, and Firebase handles authentication, real-time records, and photo storage. The present prototype passes 49 unit tests and static analysis, Push notifications are now implemented through a Cloud Function and an in-app notification center, but they still have to be deployed and tested on phones. Chat, end-to-end Firebase testing, and field-based usability evaluation are not yet demonstrated in the repository.
 
 ---
 
@@ -45,9 +45,9 @@ Use these only if they agree with the approved manuscript:
 
 ## 1.5 Scope and delimitations
 
-The repository supports an Android Flutter application backed by Firebase. Its implemented core covers authentication, researcher-admin profiling, marketplace listings, search and category filtering, listing photos, optional distance preview, bids, barter proposals, negotiation histories, and notification document creation.
+The repository supports an Android Flutter application backed by Firebase. Its implemented core covers authentication, researcher-admin profiling, marketplace listings, search and category filtering, listing photos, optional distance preview, bids, barter proposals, negotiation histories, notification records with an in-app notification center, and FCM push delivery through a Cloud Function.
 
-The scope should not be overstated. Current repository evidence does not establish online payment, delivery or logistics, price forecasting, product inspection, web scraping, automated matching, a completed chat interface, a completed push-notification center, a working auction flow, an iOS release, or measured economic impact. The `auction` type and conversation models exist, but the corresponding full workflows do not.
+The scope should not be overstated. Current repository evidence does not establish online payment, delivery or logistics, price forecasting, product inspection, web scraping, automated matching, a completed chat interface, a working auction flow, an iOS release, or measured economic impact. The `auction` type and conversation models exist, but the corresponding full workflows do not.
 
 ## 1.6 Significance of the study
 
@@ -258,7 +258,8 @@ Table 4 should be introduced as follows: **“Table 4 lists the Firestore collec
 | `listings` | Owner, product, category, unit, price, modes, photos, dates, status | Marketplace feed and details | Implemented |
 | `offers` | Listing, buyer, seller, amount, status, history | Cash negotiation | Implemented |
 | `barterProposals` | Listing, proposer, owner, offered/requested items, status, history | Goods-for-goods negotiation | Implemented |
-| `notifications` | Recipient, type, payload, timestamps/read state | Records events for later notification UI/FCM | Document creation implemented; full delivery UI pending |
+| `notifications` | Recipient, sender, type, payload, timestamps/read state, push status | Drives the in-app notification center and triggers the FCM push | Implemented; device testing pending |
+| `deviceTokens/{uid}/tokens` | FCM token, platform, update time | Lets the Cloud Function reach the user's phones | Implemented |
 | `conversations/{id}/messages` | Participants and messages | Direct chat | Models/rules exist; user-facing chat flow pending |
 
 ## 3.8 Implementation section: short code excerpts only
@@ -391,7 +392,7 @@ Table 6 should be introduced in the discussion: **“Table 6 distinguishes demon
 | Straight-line distance | Implemented in code | Display-only; depends on saved farm GPS, user permission, and device location. It is not route distance. |
 | Cash bidding | Implemented | Create, accept, reject, counter, history, and “Your move” badge are present. |
 | Barter negotiation | Implemented | Offered/requested items and note-based counters are present. |
-| Notification records | Implemented | Full FCM push delivery and in-app center are deferred. |
+| Notifications | Implemented, not yet device-tested | Records, in-app center with unread badge, and FCM push sent by the `sendPushOnNotification` Cloud Function. See `docs/NOTIFICATIONS.md` for the test script. |
 | Direct messaging | Partial/planned | Data models and rules exist; the listing action opens a coming-soon screen. |
 | Auction workflow | Not implemented | An enum value exists, but there is no full auction posting or bidding workflow. |
 | Automated unit testing | Implemented | 49 tests pass. |
@@ -403,7 +404,7 @@ The prototype responds to digital-divide concerns through several choices: accou
 
 Bid and barter histories improve traceability within the application because every proposed action creates an append-style history entry. Turn-taking prevents the same party from repeatedly acting before the other responds, and accepted/rejected states are terminal in the tested application logic. This is a useful implementation result, but application-side checks should be reinforced in back-end rules before production deployment.
 
-The current security rules restrict records by authentication, ownership, participant identity, or admin role. The review also found hardening opportunities: participant updates do not yet validate which offer/barter fields may change; any authenticated account can create a notification document; and profile-photo rules allow an authenticated writer to target any profile folder. These are appropriate limitations and future-work items, not reasons to hide the prototype's current status.
+The current security rules restrict records by authentication, ownership, participant identity, or admin role. The review also found hardening opportunities: participant updates do not yet validate which offer/barter fields may change; notification creation is now limited to a party of the referenced offer or barter; and profile-photo rules allow an authenticated writer to target any profile folder. These are appropriate limitations and future-work items, not reasons to hide the prototype's current status.
 
 ## 4.5 Where actual respondent results belong
 
@@ -421,7 +422,7 @@ Never write “highly acceptable” unless the value, scale boundaries, sample, 
 
 AgriKonek Calinan successfully implements the core of a localized mobile agricultural marketplace: consent-based researcher profiling, authenticated role routing, searchable live listings, optional product photos and farm-distance display, and structured cash and barter negotiations. The modular Flutter/Riverpod/Firebase design separates interface, state coordination, business rules, and data access. All 49 available unit tests passed, and static analysis found no issues in the reviewed code.
 
-The evidence supports calling the application a functioning, testable prototype for its implemented core features. It does not yet support conclusions that the system increases farmer income, eliminates intermediaries, improves market access in practice, or is accepted by the intended population; such claims require the approved field evaluation and actual respondent or transaction data. Further work should complete chat and push notifications, harden server-side validation, add security-rule and end-to-end tests, verify OTP and photo behavior on physical devices, and evaluate usability under realistic Calinan connectivity conditions.
+The evidence supports calling the application a functioning, testable prototype for its implemented core features. It does not yet support conclusions that the system increases farmer income, eliminates intermediaries, improves market access in practice, or is accepted by the intended population; such claims require the approved field evaluation and actual respondent or transaction data. Further work should complete chat, confirm push delivery on physical devices, harden server-side validation, add security-rule and end-to-end tests, verify OTP and photo behavior on physical devices, and evaluate usability under realistic Calinan connectivity conditions.
 
 ## 5.2 One-sentence defense conclusion
 
@@ -573,13 +574,13 @@ Accepted/Rejected = terminal
 
 **On slide:** “49/49 tests passed” and “0 analyzer issues,” plus three honest limitations.
 
-**Say:** “The verified results cover model conversion, validators, search, and negotiation rules. Chat, complete push delivery, rule integration tests, and field usability evidence remain future or separate evaluation work.”
+**Say:** “The verified results cover model conversion, validators, search, and negotiation rules. Chat, on-device push testing, rule integration tests, and field usability evidence remain future or separate evaluation work.”
 
 ### Slide 8 — Conclusion and next work
 
 **On slide:** one conclusion and three next steps.
 
-**Say:** “The prototype demonstrates technical feasibility for the core local marketplace workflow. Our next priorities are back-end rule hardening, end-to-end field testing, and completion of messaging and notification delivery.”
+**Say:** “The prototype demonstrates technical feasibility for the core local marketplace workflow. Our next priorities are back-end rule hardening, end-to-end field testing, and completion of messaging and on-device testing of notification delivery.”
 
 ## Demo safety checklist
 
@@ -644,7 +645,7 @@ Accepted/Rejected = terminal
 
 ### 12. What is the biggest current limitation?
 
-“The biggest evidence limitation is the absence of demonstrated field and end-to-end results in the repository. Technically, messaging and push delivery are incomplete, and server-side validation should be strengthened before production use.”
+“The biggest evidence limitation is the absence of demonstrated field and end-to-end results in the repository. Technically, messaging is incomplete, push delivery still needs on-device testing, and server-side validation should be strengthened before production use.”
 
 ### 13. Why are category and keyword filters client-side?
 

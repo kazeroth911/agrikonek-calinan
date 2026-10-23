@@ -17,25 +17,41 @@
     },
     "ui": {
       "enabled": true
+    },
+    "functions": {
+      "port": 5001
     }
   },
   "flutter": {
     "platforms": {
       "android": {
         "default": {
-          "projectId": "agrikonek-calinan",
-          "appId": "1:1020993244747:android:b6d8b09ab7970e284947ce",
+          "projectId": "kalinan-app",
+          "appId": "1:445763607262:android:36bae70588c19fda65404f",
           "fileOutput": "android/app/google-services.json"
         }
       },
       "dart": {
         "lib/firebase_options.dart": {
-          "projectId": "agrikonek-calinan",
+          "projectId": "kalinan-app",
           "configurations": {
-            "android": "1:1020993244747:android:b6d8b09ab7970e284947ce"
+            "android": "1:445763607262:android:36bae70588c19fda65404f"
           }
         }
       }
     }
-  }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "runtime": "nodejs22",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "*.log",
+        "test"
+      ]
+    }
+  ]
 }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/barter_proposal.dart';
 import '../../../services/barter_repository.dart';
 import '../../auth/providers/auth_providers.dart';
+import '../../notifications/widgets/notification_bell.dart';
 import '../providers/barter_providers.dart';
 import '../widgets/negotiation_widgets.dart';
 import 'barter_detail_screen.dart';
@@ -20,6 +21,7 @@ class MyBartersScreen extends ConsumerWidget {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Barters / Mga Baylo'),
+          actions: const [NotificationBell()],
           bottom: const TabBar(tabs: [
             Tab(text: 'Incoming / Padulong'),
             Tab(text: 'Sent / Gipadala'),

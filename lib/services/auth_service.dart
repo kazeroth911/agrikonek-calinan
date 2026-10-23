@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'push_notification_service.dart';
 
 /// Thin wrapper over FirebaseAuth so screens never touch the SDK directly.
 class AuthService {
@@ -50,7 +51,11 @@ class AuthService {
   Future<UserCredential> signInWithCredential(AuthCredential credential) =>
       _auth.signInWithCredential(credential);
 
-  Future<void> signOut() => _auth.signOut();
+  Future<void> signOut() async {
+    await PushNotificationService.instance.unregisterCurrentDeviceToken();
+
+    await _auth.signOut();
+  }
 
   /// Maps FirebaseAuth error codes to farmer-friendly messages.
   static String friendlyError(Object error) {

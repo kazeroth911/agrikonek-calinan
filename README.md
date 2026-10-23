@@ -4,7 +4,7 @@ AgriKonek Calinan is an Android marketplace and connectivity application for pre
 
 ## New developer setup
 
-Setting up for the first time? Follow the **[complete Windows and Android setup guide](docs/SETUP_GUIDE.md)**. It covers every required download, GitHub access, Flutter and Android Studio installation, emulator and physical-phone setup, Firebase, the first run, troubleshooting, and the team Git workflow.
+Setting up for the first time? Follow the **[complete Windows and Android setup guide](docs/SETUP_GUIDE.md)**. How notifications work, and how to deploy and test them: **[docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md)**. It covers every required download, GitHub access, Flutter and Android Studio installation, emulator and physical-phone setup, Firebase, the first run, troubleshooting, and the team Git workflow.
 
 ## Technology
 
