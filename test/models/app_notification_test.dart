@@ -55,32 +55,32 @@ void main() {
     test('bid notifications show the action and peso amount', () {
       final text = NotificationText.describe(
           'bid', {'action': 'bid', 'listingTitle': 'Durian', 'amount': 1250});
-      expect(text.title, 'New cash offer');
+      expect(text.title, 'New cash offer / Bag-ong tanyag');
       expect(text.body, 'Durian (₱1250.00)');
       expect(NotificationText.describe('bid', {'action': 'counter'}).title,
-          'Counter offer');
+          'Counter offer / Counter nga tanyag');
     });
 
     test('barter notifications use barter wording', () {
       final text = NotificationText.describe(
           'barter', {'action': 'propose', 'listingTitle': 'Cacao'});
-      expect(text.title, 'New barter proposal');
+      expect(text.title, 'New barter proposal / Bag-ong tanyag sa baylo');
       expect(text.body, 'Cacao');
       expect(NotificationText.describe('barter', {'action': 'accept'}).title,
-          'Barter accepted');
+          'Barter accepted / Gidawat ang baylo');
     });
 
     test('missing or bad fields fall back safely', () {
       final empty = NotificationText.describe('bid', {});
-      expect(empty.title, 'Bid update');
-      expect(empty.body, 'a listing');
+      expect(empty.title, 'Bid update / Update sa tanyag');
+      expect(empty.body, 'a listing / usa ka baligya');
       expect(NotificationText.describe('bid', {'amount': '500'}).body,
-          'a listing');
+          'a listing / usa ka baligya');
       expect(NotificationText.describe('unknown', {}).title, 'AgriKonek');
       expect(NotificationText.describe('admin', {}).title,
-          'AgriKonek announcement');
+          'AgriKonek announcement / Pahibalo sa AgriKonek');
       expect(NotificationText.describe('msg', {'preview': '  '}).body,
-          'You have a new message.');
+          'You have a new message. / Naa kay bag-ong mensahe.');
     });
   });
 }

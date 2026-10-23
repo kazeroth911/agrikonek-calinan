@@ -52,7 +52,7 @@ test("sends title, body, channel and link data, then records sent", async () => 
   assert.equal(status, "sent");
   const msg = f.sent[0];
   assert.deepEqual(msg.tokens, ["tokA"]);
-  assert.equal(msg.notification.title, "New cash offer");
+  assert.equal(msg.notification.title, "New cash offer / Bag-ong tanyag");
   assert.equal(msg.android.notification.channelId, "agrikonek_alerts");
   assert.deepEqual(msg.data, {notificationId: "n1", type: "bid", offerId: "off1"});
   assert.equal(ref.updates[0].pushStatus, "sent");

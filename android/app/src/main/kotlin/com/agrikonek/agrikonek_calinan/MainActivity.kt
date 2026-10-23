@@ -20,10 +20,10 @@ class MainActivity : FlutterActivity() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val channel = NotificationChannel(
             ALERT_CHANNEL_ID,
-            "Bids and barters",
+            "Bids and barters / Tanyag ug baylo",
             NotificationManager.IMPORTANCE_HIGH,
         ).apply {
-            description = "New offers, barter proposals and replies"
+            description = "New offers, barter proposals, messages and announcements"
         }
         getSystemService(NotificationManager::class.java)
             ?.createNotificationChannel(channel)
