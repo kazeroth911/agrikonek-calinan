@@ -39,7 +39,9 @@ The record is always saved before the push is sent. If a push is lost (no signal
 | `lib/features/notifications/notification_router.dart` | Opens the offer or barter a notification is about |
 | `lib/features/notifications/screens/notifications_screen.dart` | Inbox |
 | `lib/features/notifications/widgets/notification_bell.dart` | Bell with unread count on Market, Bids, Barter and Researcher screens |
-| `functions/index.js` | Cloud Function that sends the push |
+| `functions/index.js` | Cloud Function that sends the push (Blaze) |
+| `functions/push_sender.js` | The send logic itself, shared by the function and the relay |
+| `functions/local_relay.js` | Laptop stand-in for the function while on Spark (testing only) |
 | `firestore.rules` | Who may create, read and mark notifications; who may save device tokens |
 | `android/.../MainActivity.kt` | Creates the "Bids and barters" Android notification channel |
 
@@ -63,6 +65,27 @@ firebase deploy --only firestore:rules,functions --project kalinan-app
 
 Deploy the rules and the app update together. The new rules reject notification records without `senderId`, so an older app build's notifications would be refused (the bid itself still saves).
 
+## 3b. Testing on Spark: the laptop relay
+
+While the project stays on Spark, the Cloud Function cannot be deployed. `functions/local_relay.js` does its job from a laptop instead: it watches the live project's notifications and sends each push, using the same `push_sender.js` code. Pushes only go out while the relay window stays open.
+
+One-time setup:
+
+1. Firebase console → Project settings (gear) → **Service accounts** → **Generate new private key**. This downloads a JSON key.
+2. Move it **outside** the project folder, for example `C:\Users\Aaron\firebase-keys\kalinan-app.json`. The relay refuses to start if the key is inside the project. Never commit, upload or share this file: it gives full admin access to the project.
+
+Each test session (PowerShell):
+
+```powershell
+cd functions
+$env:GOOGLE_APPLICATION_CREDENTIALS = "C:\Users\Aaron\firebase-keys\kalinan-app.json"
+npm run relay -- kalinan-app
+```
+
+Leave that window open, then run the test in section 4. Each new record gets `pushStatus` and a "Push processed" line in the relay window (use that window instead of the Functions logs in step 7). Press Ctrl+C to stop.
+
+When testing is finished, delete the key: Google Cloud console → IAM & Admin → Service accounts → the `firebase-adminsdk` account → Keys → delete it.
+
 ## 4. Test on two phones (or one phone and one emulator with Google Play)
 
 Use test accounts only. A is the seller, B is the buyer.
@@ -73,7 +96,7 @@ Use test accounts only. A is the seller, B is the buyer.
 4. **App open:** keep A on the Market screen. On B, counter. A sees a snackbar and the bell count goes up.
 5. **Inbox:** on A, open the bell. The newest item is on top and bold. Tap it: it opens and turns normal. Try "mark all read".
 6. **Barter:** repeat step 3 with a barter proposal.
-7. **Evidence:** in Firestore, each record now has `pushStatus: "sent"`. In Firebase console → Functions → Logs, there is a "Push processed" line per record. Screenshot both for the paper.
+7. **Evidence:** in Firestore, each record now has `pushStatus: "sent"`. In Firebase console → Functions → Logs (or the relay window on Spark), there is a "Push processed" line per record. Screenshot both for the paper.
 8. **Sign-out:** sign out on A. Its token document disappears. A new bid now gives `pushStatus: "no_device"` and no push.
 9. **Rules:** in the Firestore Rules Playground, try creating a notification as a user who is not part of the offer. It must be denied.
 

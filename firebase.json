@@ -50,7 +50,8 @@
         "node_modules",
         ".git",
         "*.log",
-        "test"
+        "test",
+        "local_relay.js"
       ]
     }
   ]

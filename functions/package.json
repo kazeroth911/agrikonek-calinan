@@ -10,7 +10,8 @@
     "test": "node --test",
     "serve": "firebase emulators:start --only functions,firestore",
     "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
+    "logs": "firebase functions:log",
+    "relay": "node local_relay.js"
   },
   "dependencies": {
     "firebase-admin": "^13.0.0",
