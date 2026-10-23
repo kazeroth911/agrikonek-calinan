@@ -8,6 +8,7 @@ import '../../chat/chat_launcher.dart';
 import '../../profile/providers/visibility_providers.dart';
 import '../../profile/widgets/profile_unavailable_banner.dart';
 import '../providers/offer_providers.dart';
+import '../widgets/mark_sold_prompt.dart';
 import '../widgets/negotiation_widgets.dart';
 
 /// Live view of one bid negotiation: current amount, full append-only
@@ -174,6 +175,8 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
           for (final entry in offer.history.reversed)
             _HistoryTile(entry: entry, offer: offer, viewerUid: uid),
         const SizedBox(height: 24),
+        if (offer.status == OfferStatus.accepted)
+          MarkSoldPrompt(listingId: offer.listingId, ownerId: offer.sellerId),
         if (canAct) ...[
           FilledButton.icon(
             onPressed: _busy

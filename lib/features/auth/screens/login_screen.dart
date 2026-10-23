@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/validators.dart';
 import '../../../services/auth_service.dart';
 import '../providers/auth_providers.dart';
@@ -44,7 +45,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           );
       // Navigation handled by authStateProvider at the app root.
     } catch (e) {
-      setState(() => _error = AuthService.friendlyError(e));
+      if (mounted) setState(() => _error = AuthService.friendlyError(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -110,14 +111,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 CircularProgressIndicator(strokeWidth: 2.5))
                         : const Text('SIGN IN'),
                   ),
-                  const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: _busy
-                        ? null
-                        : () => Navigator.of(context).push(MaterialPageRoute(
-                            builder: (_) => const OtpScreen())),
-                    child: const Text('Use OTP instead / Gamita ang OTP'),
-                  ),
+                  if (AppConstants.enableOtpSignIn) ...[
+                    const SizedBox(height: 12),
+                    TextButton(
+                      onPressed: _busy
+                          ? null
+                          : () => Navigator.of(context).push(MaterialPageRoute(
+                              builder: (_) => const OtpScreen())),
+                      child: const Text('Use OTP instead / Gamita ang OTP'),
+                    ),
+                  ],
                   const SizedBox(height: 32),
                   Text(
                     'No account? Your researcher will profile you on-site.\n'

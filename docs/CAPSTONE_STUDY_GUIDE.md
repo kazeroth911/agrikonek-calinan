@@ -4,11 +4,13 @@
 
 **Basis of this guide:** direct review of the Flutter/Firebase repository on 5 August 2026, successful execution of all 49 automated tests, successful Flutter static analysis, and selected government, academic, and official technical sources.
 
+> **Status update, 23 October 2026.** Since this guide was first written, the repository gained push notifications (a Cloud Function, run from a laptop relay while the project stays on the Spark plan), an in-app notification center, one-to-one chat, researcher announcements, profile hiding, English/Cebuano notification wording, a "My listings" screen with listing editing, and hardened Firestore and Storage security rules with their own emulator tests. Phone-OTP sign-in is switched off for the pilot. Statements below marked *(updated 23 Oct)* reflect this. Test counts still say 49 where they describe the 5 August run; replace them with the current `flutter test`, `npm test` (functions) and rules-test totals once those are re-run.
+
 > **Important thesis-integrity note:** The repository contains the application but not the approved manuscript, survey instrument, respondent dataset, usability results, or complete field-test records. Statements about farmer income, market access improvement, acceptance, effectiveness, or respondent satisfaction must therefore use the actual thesis data. Do not invent percentages or claim that the app improved livelihoods based only on software tests.
 
 ## The 30-second explanation
 
-AgriKonek Calinan is an Android-oriented mobile marketplace for pre-profiled farmers, buyers, and traders in Calinan District. A researcher-admin creates verified user profiles; users then post agricultural products, search the live marketplace, submit cash bids or barter proposals, and negotiate through controlled accept, reject, and counter actions. Flutter provides the interface, Riverpod manages application state, and Firebase handles authentication, real-time records, and photo storage. The present prototype passes 49 unit tests and static analysis, Push notifications are now implemented through a Cloud Function and an in-app notification center, but they still have to be deployed and tested on phones. Chat, end-to-end Firebase testing, and field-based usability evaluation are not yet demonstrated in the repository.
+AgriKonek Calinan is an Android-oriented mobile marketplace for pre-profiled farmers, buyers, and traders in Calinan District. A researcher-admin creates verified user profiles; users then post agricultural products, search the live marketplace, submit cash bids or barter proposals, and negotiate through controlled accept, reject, and counter actions. Flutter provides the interface, Riverpod manages application state, and Firebase handles authentication, real-time records, and photo storage. The prototype passes its automated tests and static analysis. Push notifications, an in-app notification center, one-to-one chat, researcher announcements and profile hiding are implemented and were tested on Android phones on 23 October 2026, with pushes sent through a laptop relay while the project is on the Spark plan *(updated 23 Oct)*. Field-based usability evaluation is not yet demonstrated.
 
 ---
 
@@ -47,7 +49,7 @@ Use these only if they agree with the approved manuscript:
 
 The repository supports an Android Flutter application backed by Firebase. Its implemented core covers authentication, researcher-admin profiling, marketplace listings, search and category filtering, listing photos, optional distance preview, bids, barter proposals, negotiation histories, notification records with an in-app notification center, and FCM push delivery through a Cloud Function.
 
-The scope should not be overstated. Current repository evidence does not establish online payment, delivery or logistics, price forecasting, product inspection, web scraping, automated matching, a completed chat interface, a working auction flow, an iOS release, or measured economic impact. The `auction` type and conversation models exist, but the corresponding full workflows do not.
+The scope should not be overstated. Current repository evidence does not establish online payment, delivery or logistics, price forecasting, product inspection, web scraping, automated matching, a working auction flow, an iOS release, or measured economic impact. The `auction` type exists, but the corresponding workflow does not. Chat is text only *(updated 23 Oct)*.
 
 ## 1.6 Significance of the study
 
@@ -114,7 +116,7 @@ Table 2 should be cited in the framework paragraph: **“As summarized in Table 
 |---|---|---|
 | Flutter/Dart | Android user interface and business models | Builds screens, validates forms, and compiles the application. |
 | Riverpod | Providers, streams, loading/error states, controllers | Keeps screens updated when authentication or Firestore data change. |
-| Firebase Authentication | Email/password and phone OTP code paths | Confirms identity and supplies the UID used for ownership checks. |
+| Firebase Authentication | Email/password sign-in; phone OTP code path switched off for the pilot *(updated 23 Oct)* | Confirms identity and supplies the UID used for ownership checks. |
 | Cloud Firestore | Profiles, listings, offers, barter proposals, notifications | Stores structured records and sends live updates to subscribed screens. |
 | Cloud Storage | Profile and listing photos | Stores image files and returns URLs saved in Firestore records. |
 | Geolocator | Optional farm coordinates and display-only distance | Requests permission, reads coordinates, and calculates straight-line distance. |
@@ -260,7 +262,9 @@ Table 4 should be introduced as follows: **“Table 4 lists the Firestore collec
 | `barterProposals` | Listing, proposer, owner, offered/requested items, status, history | Goods-for-goods negotiation | Implemented |
 | `notifications` | Recipient, sender, type, payload, timestamps/read state, push status | Drives the in-app notification center and triggers the FCM push | Implemented; device testing pending |
 | `deviceTokens/{uid}/tokens` | FCM token, platform, update time | Lets the Cloud Function reach the user's phones | Implemented |
-| `conversations/{id}/messages` | Participants and messages | Direct chat | Models/rules exist; user-facing chat flow pending |
+| `conversations/{id}/messages` | Participants and messages | Direct chat | Implemented *(updated 23 Oct)* |
+| `announcements` | Title, message, audience, recipient count | Researcher notices to farmers | Implemented *(updated 23 Oct)* |
+| `hiddenProfiles` | Hidden account IDs only | Removes hidden farmers from the marketplace | Implemented *(updated 23 Oct)* |
 
 ## 3.8 Implementation section: short code excerpts only
 
@@ -310,7 +314,7 @@ if (to == OfferStatus.countered &&
 }
 ```
 
-This protects terminal offers and rejects invalid counter amounts in application logic. The final production version should also validate immutable fields and legal transitions in Firestore Security Rules or trusted server code.
+This protects terminal offers and rejects invalid counter amounts in application logic. Firestore Security Rules now enforce the same transitions on the server: accepted and rejected are final, each move appends exactly one history entry by the mover, nobody can accept or reject their own last move, and the buyer, seller, listing and items cannot be changed *(updated 23 Oct)*.
 
 ### E. Core negotiation algorithm
 
@@ -384,7 +388,7 @@ Table 6 should be introduced in the discussion: **“Table 6 distinguishes demon
 | Feature | Evidence-based status | Discussion |
 |---|---|---|
 | Email/password sign-in | Implemented | Error messages are translated into simpler English/Cebuano-style guidance. |
-| Phone OTP | Code path implemented | Requires device and Firebase-provider testing before claiming deployment success. |
+| Phone OTP | Switched off for the pilot *(updated 23 Oct)* | Researcher-made accounts use email; SMS sign-in would create a separate, empty account until phone numbers are linked in the separately consented account-claiming phase. |
 | Researcher-led profiling | Implemented | Captures roles, products, barter preference, device/data plan, consent, optional GPS/photos. |
 | Role routing | Implemented | Admins and non-admin users receive different home interfaces. |
 | Marketplace feed | Implemented | Live newest-first feed, closed-item filtering, category chips, and keyword search. |
@@ -393,18 +397,21 @@ Table 6 should be introduced in the discussion: **“Table 6 distinguishes demon
 | Cash bidding | Implemented | Create, accept, reject, counter, history, and “Your move” badge are present. |
 | Barter negotiation | Implemented | Offered/requested items and note-based counters are present. |
 | Notifications | Implemented, not yet device-tested | Records, in-app center with unread badge, and FCM push sent by the `sendPushOnNotification` Cloud Function. See `docs/NOTIFICATIONS.md` for the test script. |
-| Direct messaging | Partial/planned | Data models and rules exist; the listing action opens a coming-soon screen. |
+| Direct messaging | Implemented *(updated 23 Oct)* | Text chat from listings, bids and barters, with unread badges and push notifications. |
+| Announcements | Implemented *(updated 23 Oct)* | Researchers send notices to everyone, one barangay or chosen farmers. |
+| Profile hiding | Implemented *(updated 23 Oct)* | Farmer or admin hides a profile; listings leave the feed and others see "This profile is unavailable." |
 | Auction workflow | Not implemented | An enum value exists, but there is no full auction posting or bidding workflow. |
 | Automated unit testing | Implemented | 49 tests pass. |
-| Integration, widget, rule, and field usability tests | Not demonstrated | Necessary before broader deployment claims. |
+| Security-rule tests | Written *(updated 23 Oct)* | Emulator tests in `firestore-tests/`; record the result once run. |
+| Integration, widget, and field usability tests | Not demonstrated | Necessary before broader deployment claims. |
 
 ## 4.4 Discussion of design choices
 
 The prototype responds to digital-divide concerns through several choices: accounts are seeded during researcher profiling, cards use one small thumbnail, uploads can fail without discarding the entire listing form, and marketplace filters reuse one capped feed. These choices align with the literature's warning that connectivity, device access, and support affect digital-agriculture adoption. However, the application still depends on internet-connected Firebase services for live records, so it should not be described as fully offline.
 
-Bid and barter histories improve traceability within the application because every proposed action creates an append-style history entry. Turn-taking prevents the same party from repeatedly acting before the other responds, and accepted/rejected states are terminal in the tested application logic. This is a useful implementation result, but application-side checks should be reinforced in back-end rules before production deployment.
+Bid and barter histories improve traceability within the application because every proposed action creates an append-style history entry. Turn-taking prevents the same party from repeatedly acting before the other responds, and accepted/rejected states are terminal in the tested application logic. This is a useful implementation result, and the same checks are now enforced in the back-end rules *(updated 23 Oct)*.
 
-The current security rules restrict records by authentication, ownership, participant identity, or admin role. The review also found hardening opportunities: participant updates do not yet validate which offer/barter fields may change; notification creation is now limited to a party of the referenced offer or barter; and profile-photo rules allow an authenticated writer to target any profile folder. These are appropriate limitations and future-work items, not reasons to hide the prototype's current status.
+The current security rules restrict records by authentication, ownership, participant identity, or admin role. The hardening items found in the August review have been addressed *(updated 23 Oct)*: offer and barter updates are validated field by field, bids and barters must name the listing's real owner, listings cannot be posted under another farmer's name, notifications can be created only by a party to the referenced bid, barter or chat, and profile photos can be uploaded only by researcher-admins. These rules have emulator tests but have not been independently audited.
 
 ## 4.5 Where actual respondent results belong
 
@@ -422,7 +429,7 @@ Never write “highly acceptable” unless the value, scale boundaries, sample, 
 
 AgriKonek Calinan successfully implements the core of a localized mobile agricultural marketplace: consent-based researcher profiling, authenticated role routing, searchable live listings, optional product photos and farm-distance display, and structured cash and barter negotiations. The modular Flutter/Riverpod/Firebase design separates interface, state coordination, business rules, and data access. All 49 available unit tests passed, and static analysis found no issues in the reviewed code.
 
-The evidence supports calling the application a functioning, testable prototype for its implemented core features. It does not yet support conclusions that the system increases farmer income, eliminates intermediaries, improves market access in practice, or is accepted by the intended population; such claims require the approved field evaluation and actual respondent or transaction data. Further work should complete chat, confirm push delivery on physical devices, harden server-side validation, add security-rule and end-to-end tests, verify OTP and photo behavior on physical devices, and evaluate usability under realistic Calinan connectivity conditions.
+The evidence supports calling the application a functioning, testable prototype for its implemented core features. It does not yet support conclusions that the system increases farmer income, eliminates intermediaries, improves market access in practice, or is accepted by the intended population; such claims require the approved field evaluation and actual respondent or transaction data. Further work should move push delivery from the laptop relay to the Cloud Function on the Blaze plan, enable photo uploads (also Blaze), add end-to-end tests, link farmers' phone numbers before enabling OTP sign-in, and evaluate usability under realistic Calinan connectivity conditions *(updated 23 Oct)*.
 
 ## 5.2 One-sentence defense conclusion
 
@@ -574,13 +581,13 @@ Accepted/Rejected = terminal
 
 **On slide:** “49/49 tests passed” and “0 analyzer issues,” plus three honest limitations.
 
-**Say:** “The verified results cover model conversion, validators, search, and negotiation rules. Chat, on-device push testing, rule integration tests, and field usability evidence remain future or separate evaluation work.”
+**Say:** “The verified results cover model conversion, validators, search, negotiation rules and the security rules. Field usability evidence remains separate evaluation work.” *(updated 23 Oct)*
 
 ### Slide 8 — Conclusion and next work
 
 **On slide:** one conclusion and three next steps.
 
-**Say:** “The prototype demonstrates technical feasibility for the core local marketplace workflow. Our next priorities are back-end rule hardening, end-to-end field testing, and completion of messaging and on-device testing of notification delivery.”
+**Say:** “The prototype demonstrates technical feasibility for the core local marketplace workflow. Our next priorities are moving to the Blaze plan for automatic push and photos, end-to-end field testing, and usability evaluation with farmers.” *(updated 23 Oct)*
 
 ## Demo safety checklist
 
@@ -645,7 +652,7 @@ Accepted/Rejected = terminal
 
 ### 12. What is the biggest current limitation?
 
-“The biggest evidence limitation is the absence of demonstrated field and end-to-end results in the repository. Technically, messaging is incomplete, push delivery still needs on-device testing, and server-side validation should be strengthened before production use.”
+“The biggest evidence limitation is the absence of demonstrated field and end-to-end results. Technically, automatic push and photo uploads need the Blaze plan; while on Spark, pushes run through a laptop relay.” *(updated 23 Oct)*
 
 ### 13. Why are category and keyword filters client-side?
 

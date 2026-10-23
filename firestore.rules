@@ -43,20 +43,88 @@ service cloud.firestore {
       allow update: if isAdmin()
         || (isOwner(userId)
             && !request.resource.data.diff(resource.data)
-                 .affectedKeys().hasAny(['roles', 'createdAt', 'consentUrl']));
+                 .affectedKeys().hasAny(['roles', 'createdAt', 'consentUrl',
+                                         'consentGiven']));
     }
 
     // ---- listings ------------------------------------------------------
+    // The owner's name and barangay are copied from their own profile, so
+    // nobody can post under another farmer's name. Owners may edit and
+    // close their listings but never hand them to another account.
+    function validListingFields(d) {
+      return d.title is string && d.title.size() > 0 && d.title.size() <= 120
+        && d.category is string
+        && (d.price == null || ((d.price is int || d.price is float) && d.price >= 0))
+        && d.modes is list && d.modes.size() > 0
+        && d.photoUrls is list && d.photoUrls.size() <= 4
+        && d.status in ['active', 'closed'];
+    }
+
     match /listings/{listingId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn()
-        && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if isSignedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerName
+             == get(profilePath(request.auth.uid)).data.fullName
+        && request.resource.data.ownerBarangay
+             == get(profilePath(request.auth.uid)).data.barangay
+        && request.resource.data.status == 'active'
+        && request.resource.data.createdAt == request.time
+        && validListingFields(request.resource.data);
+      allow update: if isSignedIn()
+        && (isAdmin()
+            || (resource.data.ownerId == request.auth.uid
+                && !request.resource.data.diff(resource.data).affectedKeys()
+                     .hasAny(['ownerId', 'ownerName', 'ownerBarangay', 'createdAt'])))
+        && validListingFields(request.resource.data);
+      allow delete: if isSignedIn()
         && (resource.data.ownerId == request.auth.uid || isAdmin());
     }
 
+    // ---- negotiation helpers (bids and barters) -------------------------
+    // The app's negotiation rules, enforced here too so a modified app
+    // cannot skip them:
+    //  - accepted and rejected are final;
+    //  - each move appends exactly one history entry, by the mover, and
+    //    never edits earlier entries;
+    //  - nobody can accept or reject their own last move. (Countering
+    //    is allowed for either side at any time, which is how a buyer
+    //    revises an open bid.)
+    function listingPath(listingId) {
+      return /databases/$(database)/documents/listings/$(listingId);
+    }
+
+    function appendsOneEntryBy(uid) {
+      let before = resource.data.history;
+      let after = request.resource.data.history;
+      return after is list
+        && after.size() == before.size() + 1
+        && after[0:before.size()] == before
+        && after[after.size() - 1].byUserId == uid;
+    }
+
+    function lastActor() {
+      return resource.data.history[resource.data.history.size() - 1].byUserId;
+    }
+
+    function actionFor(status) {
+      return status == 'accepted' ? 'accept'
+        : (status == 'rejected' ? 'reject' : 'counter');
+    }
+
+    function isValidMove() {
+      let to = request.resource.data.status;
+      let entry = request.resource.data.history[request.resource.data.history.size() - 1];
+      return resource.data.status in ['pending', 'countered']
+        && to in ['accepted', 'rejected', 'countered']
+        && appendsOneEntryBy(request.auth.uid)
+        && entry.action == actionFor(to)
+        && (to == 'countered' || lastActor() != request.auth.uid);
+    }
+
     // ---- offers (bids) -------------------------------------------------
-    // Visible only to buyer, listing owner, and admin.
+    // Visible only to buyer, listing owner, and admin. The seller must be
+    // the listing's real owner, and the listing must still be open.
     match /offers/{offerId} {
       allow read: if isSignedIn()
         && (resource.data.buyerId == request.auth.uid
@@ -64,10 +132,26 @@ service cloud.firestore {
             || isAdmin());
       allow create: if isSignedIn()
         && request.resource.data.buyerId == request.auth.uid
-        && !isHidden(request.resource.data.sellerId);
+        && request.resource.data.sellerId
+             == get(listingPath(request.resource.data.listingId)).data.ownerId
+        && get(listingPath(request.resource.data.listingId)).data.status == 'active'
+        && request.resource.data.sellerId != request.auth.uid
+        && !isHidden(request.resource.data.sellerId)
+        && request.resource.data.status == 'pending'
+        && (request.resource.data.amount is int || request.resource.data.amount is float)
+        && request.resource.data.amount > 0
+        && request.resource.data.history.size() == 1
+        && request.resource.data.history[0].byUserId == request.auth.uid;
       allow update: if isSignedIn()
         && (resource.data.buyerId == request.auth.uid
-            || resource.data.sellerId == request.auth.uid);
+            || resource.data.sellerId == request.auth.uid)
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'amount', 'history', 'updatedAt'])
+        && isValidMove()
+        && (request.resource.data.status == 'countered'
+            ? ((request.resource.data.amount is int || request.resource.data.amount is float)
+               && request.resource.data.amount > 0)
+            : request.resource.data.amount == resource.data.amount);
     }
 
     // ---- barter proposals ----------------------------------------------
@@ -78,10 +162,22 @@ service cloud.firestore {
             || isAdmin());
       allow create: if isSignedIn()
         && request.resource.data.proposerId == request.auth.uid
-        && !isHidden(request.resource.data.ownerId);
+        && request.resource.data.ownerId
+             == get(listingPath(request.resource.data.listingId)).data.ownerId
+        && get(listingPath(request.resource.data.listingId)).data.status == 'active'
+        && request.resource.data.ownerId != request.auth.uid
+        && !isHidden(request.resource.data.ownerId)
+        && request.resource.data.status == 'pending'
+        && request.resource.data.offeredItems.size() > 0
+        && request.resource.data.requestedItems.size() > 0
+        && request.resource.data.history.size() == 1
+        && request.resource.data.history[0].byUserId == request.auth.uid;
       allow update: if isSignedIn()
         && (resource.data.proposerId == request.auth.uid
-            || resource.data.ownerId == request.auth.uid);
+            || resource.data.ownerId == request.auth.uid)
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'history', 'updatedAt'])
+        && isValidMove();
     }
 
     // ---- conversations & messages --------------------------------------

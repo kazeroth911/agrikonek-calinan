@@ -19,18 +19,31 @@ class ListingRepository {
   CollectionReference<Map<String, dynamic>> get _col =>
       _db.collection(AppConstants.colListings);
 
-  /// Newest-first marketplace feed. Closed listings are filtered out
-  /// here; category filtering happens in the provider layer so one
-  /// stream subscription serves every chip selection.
+  /// Newest-first marketplace feed. Closed and expired listings are
+  /// filtered out here; category filtering happens in the provider layer
+  /// so one stream subscription serves every chip selection.
   Stream<List<Listing>> watchFeed() {
     return _col
         .orderBy('createdAt', descending: true)
         .limit(AppConstants.feedQueryLimit)
         .snapshots()
-        .map((snap) => snap.docs
-            .map(Listing.fromDoc)
-            .where((l) => l.status == ListingStatus.active)
-            .toList());
+        .map((snap) {
+      final now = DateTime.now();
+      return snap.docs
+          .map(Listing.fromDoc)
+          .where((l) => isOpenForFeed(l, now))
+          .toList();
+    });
+  }
+
+  /// Active, and not past its "available until" date. The date counts
+  /// through the end of that day.
+  static bool isOpenForFeed(Listing listing, DateTime now) {
+    if (listing.status != ListingStatus.active) return false;
+    final to = listing.availableTo;
+    if (to == null) return true;
+    final endOfDay = DateTime(to.year, to.month, to.day + 1);
+    return now.isBefore(endOfDay);
   }
 
   /// One listing, live — keeps the detail screen current if the owner
@@ -71,9 +84,6 @@ class ListingRepository {
     return _col.doc(listingId).delete();
   }
 
-  /// Pure keyword filter over the streamed feed — matches title,
-  /// description, category, owner name, and barangay. Pure Dart so it is
-  /// unit-testable per the 70%-coverage commitment on business logic.
   /// Drops listings whose owner has hidden their profile.
   static List<Listing> withoutHiddenOwners(
       List<Listing> listings, Set<String> hiddenOwnerIds) {
@@ -81,6 +91,9 @@ class ListingRepository {
     return listings.where((l) => !hiddenOwnerIds.contains(l.ownerId)).toList();
   }
 
+  /// Pure keyword filter over the streamed feed — matches title,
+  /// description, category, owner name, and barangay. Pure Dart so it is
+  /// unit-testable per the 70%-coverage commitment on business logic.
   static List<Listing> filterByKeyword(List<Listing> listings, String query) {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) return listings;

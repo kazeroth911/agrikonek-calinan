@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../models/profile.dart';
 import '../../auth/providers/auth_providers.dart';
+import '../../listings/screens/my_listings_screen.dart';
 
 /// The signed-in farmer's own profile, with the option to hide it from
 /// the marketplace (a participant right in the study's consent terms).
@@ -87,6 +88,18 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                     style: theme.textTheme.bodySmall),
               ],
               const SizedBox(height: 24),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.inventory_2_outlined),
+                  title: const Text('My listings / Akong mga baligya'),
+                  subtitle:
+                      const Text('Edit, re-open or delete what you posted'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                          builder: (_) => const MyListingsScreen())),
+                ),
+              ),
               Card(
                 child: SwitchListTile(
                   value: profile.hidden,

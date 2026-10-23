@@ -35,6 +35,8 @@ class ProfilingResult {
 /// 1. create auth account on the secondary app (admin stays signed in)
 /// 2. upload farm photos to Cloud Storage
 /// 3. write the Profile document at the new uid
+/// If step 2 or 3 fails, the new login is deleted again so the
+/// researcher can simply retry with the same email.
 final profilingControllerProvider =
     Provider<ProfilingController>((ref) => ProfilingController(ref));
 
@@ -56,36 +58,48 @@ class ProfilingController {
         starterPassword ?? AdminAccountService.generateStarterPassword();
 
     // 1. Auth account (secondary app keeps the admin session alive).
-    final uid = await accounts.createFarmerAuthAccount(
+    final account = await accounts.createFarmerAuthAccount(
       email: email,
       password: password,
     );
+    final uid = account.uid;
 
-    // 2. Photos — best-effort: an empty result means Storage is
-    // unavailable (Spark tier / offline) and the profile saves photo-less.
-    final photoUrls = await _ref
-        .read(storageServiceProvider)
-        .uploadProfilePhotos(uid: uid, files: photos);
+    try {
+      // 2. Photos — best-effort: an empty result means Storage is
+      // unavailable (Spark tier / offline) and the profile saves photo-less.
+      final photoUrls = await _ref
+          .read(storageServiceProvider)
+          .uploadProfilePhotos(uid: uid, files: photos);
 
-    // 3. Profile document keyed by the auth uid.
-    final profile = Profile(
-      userId: uid,
-      fullName: draft.fullName,
-      roles: draft.roles,
-      barangay: draft.barangay,
-      phone: draft.phone,
-      email: email,
-      products: draft.products,
-      barterWillingness: draft.barterWillingness,
-      preferredTradeResources: draft.preferredTradeResources,
-      farmLocation: farmLocation,
-      farmSizeNote: draft.farmSizeNote,
-      deviceType: draft.deviceType,
-      dataPlan: draft.dataPlan,
-      photoUrls: photoUrls,
-      consentGiven: draft.consentGiven,
-    );
-    await repo.createProfile(profile);
+      // 3. Profile document keyed by the auth uid.
+      final profile = Profile(
+        userId: uid,
+        fullName: draft.fullName,
+        roles: draft.roles,
+        barangay: draft.barangay,
+        phone: draft.phone,
+        email: email,
+        products: draft.products,
+        barterWillingness: draft.barterWillingness,
+        preferredTradeResources: draft.preferredTradeResources,
+        farmLocation: farmLocation,
+        farmSizeNote: draft.farmSizeNote,
+        deviceType: draft.deviceType,
+        dataPlan: draft.dataPlan,
+        photoUrls: photoUrls,
+        consentGiven: draft.consentGiven,
+      );
+      await repo.createProfile(profile);
+    } catch (_) {
+      // No profile, so no login either: keeps the email reusable.
+      try {
+        await account.rollback();
+      } catch (_) {
+        // Rolling back is best-effort; the original error matters more.
+      }
+      rethrow;
+    }
+    await account.finish();
 
     return ProfilingResult(uid: uid, email: email, starterPassword: password);
   }

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -11,11 +12,18 @@ import '../../../models/listing.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../providers/listing_providers.dart';
 
-/// Post a product/resource listing (paper workflow 2). Minimal fields
-/// per the HCI commitments; photos upload best-effort so a failed
-/// Storage call never costs the farmer their filled-in form.
+/// Post a product/resource listing (paper workflow 2), or edit one when
+/// [existing] is given. Minimal fields per the HCI commitments; photos
+/// upload best-effort so a failed Storage call never costs the farmer
+/// their filled-in form.
 class PostListingScreen extends ConsumerStatefulWidget {
-  const PostListingScreen({super.key});
+  const PostListingScreen({super.key, this.existing});
+
+  /// The listing being edited, or null for a new listing.
+  final Listing? existing;
+
+  /// Longest title the security rules accept.
+  static const maxTitleLength = 120;
 
   @override
   ConsumerState<PostListingScreen> createState() => _PostListingScreenState();
@@ -33,10 +41,36 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
   DateTime? _availableFrom;
   DateTime? _availableTo;
   final List<File> _photos = [];
+
+  /// Photos already uploaded for the listing being edited.
+  final List<String> _existingPhotoUrls = [];
   bool _busy = false;
   String? _error;
 
   static final _dateLabel = DateFormat('MMM d, yyyy');
+
+  bool get _editing => widget.existing != null;
+
+  int get _photoCount => _existingPhotoUrls.length + _photos.length;
+
+  @override
+  void initState() {
+    super.initState();
+    final l = widget.existing;
+    if (l != null) {
+      _titleController.text = l.title;
+      _descriptionController.text = l.description;
+      if (l.price != null) _priceController.text = l.price.toString();
+      _category = AppConstants.listingCategories.contains(l.category)
+          ? l.category
+          : null;
+      _unit = AppConstants.listingUnits.contains(l.unit) ? l.unit : null;
+      _openToBarter = l.modes.contains(ListingMode.barter);
+      _availableFrom = l.availableFrom;
+      _availableTo = l.availableTo;
+      _existingPhotoUrls.addAll(l.photoUrls);
+    }
+  }
 
   @override
   void dispose() {
@@ -59,10 +93,14 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
 
   Future<void> _pickDate({required bool isFrom}) async {
     final now = DateTime.now();
+    final initial = (isFrom ? _availableFrom : _availableTo) ?? now;
+    // An edited listing may already have a past date; the picker must
+    // allow it or it throws.
+    final earliest = now.subtract(const Duration(days: 1));
     final picked = await showDatePicker(
       context: context,
-      initialDate: (isFrom ? _availableFrom : _availableTo) ?? now,
-      firstDate: now.subtract(const Duration(days: 1)),
+      initialDate: initial,
+      firstDate: initial.isBefore(earliest) ? initial : earliest,
       lastDate: now.add(const Duration(days: 365)),
     );
     if (picked != null && mounted) {
@@ -102,9 +140,47 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
     try {
       // Best-effort upload: empty result = Storage unavailable (Spark
       // tier / offline) and the listing posts photo-less.
-      final photoUrls = await ref
+      final newPhotoUrls = await ref
           .read(storageServiceProvider)
           .uploadListingPhotos(ownerUid: profile.userId, files: _photos);
+      final photoUrls = [..._existingPhotoUrls, ...newPhotoUrls];
+      final modes = [
+        if (price != null) ListingMode.sale,
+        if (_openToBarter) ListingMode.barter,
+      ];
+
+      final existing = widget.existing;
+      if (existing != null) {
+        // Only the fields the form edits; owner, name and createdAt stay
+        // as they are (the security rules refuse to change them).
+        await ref.read(listingRepositoryProvider).updateListing(
+          existing.listingId,
+          {
+            'title': _titleController.text.trim(),
+            'category': _category!,
+            'description': _descriptionController.text.trim(),
+            'unit': price == null ? null : _unit,
+            'price': price,
+            'modes': modes.map((m) => m.name).toList(),
+            'photoUrls': photoUrls,
+            'availableFrom': _availableFrom == null
+                ? null
+                : Timestamp.fromDate(_availableFrom!),
+            'availableTo':
+                _availableTo == null ? null : Timestamp.fromDate(_availableTo!),
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(_photos.isNotEmpty &&
+                  newPhotoUrls.length < _photos.length
+              ? 'Changes saved, but new photos could not be uploaded.'
+              : 'Changes saved. / Na-save na.'),
+        ));
+        Navigator.of(context).pop();
+        return;
+      }
 
       final listing = Listing(
         listingId: '', // assigned by Firestore
@@ -117,10 +193,7 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
         description: _descriptionController.text.trim(),
         unit: price == null ? null : _unit,
         price: price,
-        modes: [
-          if (price != null) ListingMode.sale,
-          if (_openToBarter) ListingMode.barter,
-        ],
+        modes: modes,
         photoUrls: photoUrls,
         availableFrom: _availableFrom,
         availableTo: _availableTo,
@@ -130,7 +203,7 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
 
       if (!mounted) return;
       final messenger = ScaffoldMessenger.of(context);
-      if (_photos.isNotEmpty && photoUrls.length < _photos.length) {
+      if (_photos.isNotEmpty && newPhotoUrls.length < _photos.length) {
         messenger.showSnackBar(const SnackBar(
           content: Text('Listing posted, but photos could not be uploaded. '
               'You can add them later.'),
@@ -142,7 +215,9 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
       }
       Navigator.of(context).pop();
     } catch (e) {
-      setState(() => _error = 'Could not post listing: $e');
+      setState(() => _error = _editing
+          ? 'Could not save changes: $e'
+          : 'Could not post listing: $e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -152,7 +227,8 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Post a Listing')),
+      appBar: AppBar(
+          title: Text(_editing ? 'Edit Listing' : 'Post a Listing')),
       body: SafeArea(
         child: Form(
           key: _formKey,
@@ -161,6 +237,7 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
             children: [
               TextFormField(
                 controller: _titleController,
+                maxLength: PostListingScreen.maxTitleLength,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(
                   labelText: 'What are you selling? *',
@@ -274,6 +351,39 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
+                  for (var i = 0; i < _existingPhotoUrls.length; i++)
+                    Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(_existingPhotoUrls[i],
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const SizedBox(
+                                  width: 80,
+                                  height: 80,
+                                  child: Icon(Icons.broken_image))),
+                        ),
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          child: InkWell(
+                            onTap: _busy
+                                ? null
+                                : () => setState(
+                                    () => _existingPhotoUrls.removeAt(i)),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.errorContainer,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.close, size: 20),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   for (var i = 0; i < _photos.length; i++)
                     Stack(
                       children: [
@@ -300,7 +410,7 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
                         ),
                       ],
                     ),
-                  if (_photos.length < AppConstants.maxListingPhotos) ...[
+                  if (_photoCount < AppConstants.maxListingPhotos) ...[
                     OutlinedButton.icon(
                       onPressed:
                           _busy ? null : () => _addPhoto(ImageSource.camera),
@@ -330,7 +440,9 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
                         height: 24,
                         width: 24,
                         child: CircularProgressIndicator(strokeWidth: 2.5))
-                    : const Text('POST LISTING / I-POST'),
+                    : Text(_editing
+                        ? 'SAVE CHANGES / I-SAVE'
+                        : 'POST LISTING / I-POST'),
               ),
               const SizedBox(height: 32),
             ],

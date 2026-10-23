@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../models/barter_proposal.dart';
 import '../../../models/listing.dart';
 import '../../../models/offer.dart';
+import '../../../services/listing_repository.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../chat/chat_launcher.dart';
 import '../../offers/providers/barter_providers.dart';
@@ -18,6 +19,7 @@ import '../../profile/providers/visibility_providers.dart';
 import '../../profile/widgets/profile_unavailable_banner.dart';
 import '../providers/listing_providers.dart';
 import '../widgets/listing_card.dart' show listingPriceLabel;
+import 'post_listing_screen.dart';
 
 /// Full listing view: photo gallery, price, farmer info with barangay,
 /// straight-line distance preview (display only, per panel decision),
@@ -143,7 +145,8 @@ class _ListingDetailBody extends ConsumerWidget {
               const SizedBox(height: 24),
               if (isOwner)
                 _OwnerActions(listing: listing)
-              else if (listing.status == ListingStatus.active)
+              else if (ListingRepository.isOpenForFeed(
+                  listing, DateTime.now()))
                 _BuyerActions(
                     listing: listing, forSale: forSale, forBarter: forBarter),
             ],
@@ -317,6 +320,21 @@ class _OwnerActions extends ConsumerWidget {
 
   final Listing listing;
 
+  /// Runs an owner action and shows a message if it fails, instead of
+  /// failing silently.
+  static Future<void> _attempt(
+    BuildContext context,
+    Future<void> Function() action, {
+    required String failure,
+  }) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await action();
+    } catch (error) {
+      messenger.showSnackBar(SnackBar(content: Text('$failure: $error')));
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final repo = ref.read(listingRepositoryProvider);
@@ -329,16 +347,31 @@ class _OwnerActions extends ConsumerWidget {
             style: Theme.of(context).textTheme.bodyMedium),
         const SizedBox(height: 12),
         _ListingNegotiations(listing: listing),
+        FilledButton.tonalIcon(
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+              builder: (_) => PostListingScreen(existing: listing))),
+          icon: const Icon(Icons.edit_outlined),
+          label: const Text('Edit Listing / Usba'),
+        ),
+        const SizedBox(height: 12),
         if (isActive)
           FilledButton.tonalIcon(
-            onPressed: () => repo.closeListing(listing.listingId),
+            onPressed: () => _attempt(
+              context,
+              () => repo.closeListing(listing.listingId),
+              failure: 'Could not mark as sold',
+            ),
             icon: const Icon(Icons.check_circle_outline),
             label: const Text('Mark as Sold / Close'),
           )
         else
           FilledButton.tonalIcon(
-            onPressed: () => repo.updateListing(
-                listing.listingId, {'status': ListingStatus.active.name}),
+            onPressed: () => _attempt(
+              context,
+              () => repo.updateListing(
+                  listing.listingId, {'status': ListingStatus.active.name}),
+              failure: 'Could not re-open',
+            ),
             icon: const Icon(Icons.refresh),
             label: const Text('Re-open Listing'),
           ),
@@ -364,9 +397,15 @@ class _OwnerActions extends ConsumerWidget {
                 ],
               ),
             );
-            if (confirmed == true) {
+            if (confirmed != true || !context.mounted) return;
+            final navigator = Navigator.of(context);
+            final messenger = ScaffoldMessenger.of(context);
+            try {
               await repo.deleteListing(listing.listingId);
-              if (context.mounted) Navigator.of(context).pop();
+              navigator.pop();
+            } catch (error) {
+              messenger.showSnackBar(
+                  SnackBar(content: Text('Could not delete: $error')));
             }
           },
           icon: const Icon(Icons.delete_outline),

@@ -73,6 +73,11 @@ class AuthService {
           return 'No internet connection. / Walay koneksyon sa internet.';
         case 'invalid-verification-code':
           return 'The code you entered is incorrect. Please check the SMS.';
+        case 'email-already-in-use':
+          return 'That email already has an account. Use a different email '
+              'for this farmer.';
+        case 'weak-password':
+          return 'That password is too weak. Use at least 6 characters.';
         default:
           return 'Sign-in failed (${error.code}). Please try again.';
       }

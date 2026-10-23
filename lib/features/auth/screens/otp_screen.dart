@@ -40,34 +40,52 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       _error = null;
     });
     final auth = ref.read(authServiceProvider);
-    await auth.startPhoneSignIn(
-      e164Phone: Validators.toE164Ph(_phoneController.text),
-      onAutoVerified: (credential) async {
-        // Some devices auto-read the SMS; sign in immediately.
-        try {
-          await auth.signInWithCredential(credential);
-          if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
-        } catch (e) {
-          if (mounted) {
-            setState(() {
-              _error = AuthService.friendlyError(e);
-              _busy = false;
-            });
+    try {
+      await auth.startPhoneSignIn(
+        e164Phone: Validators.toE164Ph(_phoneController.text),
+        onAutoVerified: (credential) async {
+          // Some devices auto-read the SMS; sign in immediately.
+          try {
+            await auth.signInWithCredential(credential);
+            if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
+          } catch (e) {
+            if (mounted) {
+              setState(() {
+                _error = AuthService.friendlyError(e);
+                _busy = false;
+              });
+            }
           }
-        }
-      },
-      onFailed: (e) => setState(() {
-        _error = AuthService.friendlyError(e);
-        _busy = false;
-      }),
-      onCodeSent: (verificationId, _) => setState(() {
-        _verificationId = verificationId;
-        _busy = false;
-      }),
-      onTimeout: (verificationId) {
-        _verificationId ??= verificationId;
-      },
-    );
+        },
+        // The SMS can arrive after the user has left this screen, so every
+        // callback checks that the screen still exists first.
+        onFailed: (e) {
+          if (!mounted) return;
+          setState(() {
+            _error = AuthService.friendlyError(e);
+            _busy = false;
+          });
+        },
+        onCodeSent: (verificationId, _) {
+          if (!mounted) return;
+          setState(() {
+            _verificationId = verificationId;
+            _busy = false;
+          });
+        },
+        onTimeout: (verificationId) {
+          if (!mounted) return;
+          _verificationId ??= verificationId;
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = AuthService.friendlyError(e);
+          _busy = false;
+        });
+      }
+    }
   }
 
   Future<void> _confirmCode() async {
@@ -86,7 +104,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
           );
       if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
     } on FirebaseAuthException catch (e) {
-      setState(() => _error = AuthService.friendlyError(e));
+      if (mounted) setState(() => _error = AuthService.friendlyError(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

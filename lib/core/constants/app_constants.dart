@@ -18,6 +18,14 @@ class AppConstants {
   /// are readable only by their owner and admins.
   static const colHiddenProfiles = 'hiddenProfiles';
 
+  /// SMS-code sign-in. Off for the pilot: researcher-made accounts use
+  /// email and password, and an SMS sign-in would create a separate,
+  /// empty account. Turn on only after farmers' phone numbers are linked
+  /// to their accounts (the separately consented account-claiming phase),
+  /// by building with --dart-define=ENABLE_OTP=true.
+  static const enableOtpSignIn =
+      bool.fromEnvironment('ENABLE_OTP', defaultValue: false);
+
   /// Shown wherever a hidden profile would otherwise appear.
   static const profileUnavailable = 'This profile is unavailable.';
 

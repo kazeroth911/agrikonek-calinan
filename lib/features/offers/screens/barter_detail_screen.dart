@@ -8,6 +8,7 @@ import '../../chat/chat_launcher.dart';
 import '../../profile/providers/visibility_providers.dart';
 import '../../profile/widgets/profile_unavailable_banner.dart';
 import '../providers/barter_providers.dart';
+import '../widgets/mark_sold_prompt.dart';
 import '../widgets/negotiation_widgets.dart';
 
 /// Live view of one barter negotiation: offered vs requested items,
@@ -179,6 +180,9 @@ class _BarterDetailScreenState extends ConsumerState<BarterDetailScreen> {
             _HistoryTile(entry: entry, proposal: proposal, viewerUid: uid),
           const SizedBox(height: 16),
         ],
+        if (proposal.status == BarterStatus.accepted)
+          MarkSoldPrompt(
+              listingId: proposal.listingId, ownerId: proposal.ownerId),
         if (canAct) ...[
           FilledButton.icon(
             onPressed: _busy
