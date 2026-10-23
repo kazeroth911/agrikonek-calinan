@@ -22,6 +22,7 @@ class Profile {
     this.photoUrls = const [],
     this.consentGiven = false,
     this.consentUrl,
+    this.hidden = false,
     this.createdAt,
     this.updatedAt,
   });
@@ -48,6 +49,12 @@ class Profile {
 
   final bool consentGiven;
   final String? consentUrl; // photo/scan of signed consent form
+
+  /// Hidden by the farmer or an admin: the profile and its listings leave
+  /// the marketplace, and others see "This profile is unavailable."
+  /// Written only through ProfileRepository.setHidden, never by toMap,
+  /// so saving other profile edits can never unhide it by accident.
+  final bool hidden;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -88,6 +95,7 @@ class Profile {
       photoUrls: photoUrls ?? this.photoUrls,
       consentGiven: consentGiven ?? this.consentGiven,
       consentUrl: consentUrl ?? this.consentUrl,
+      hidden: hidden,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
@@ -138,6 +146,7 @@ class Profile {
       photoUrls: List<String>.from(map['photoUrls'] ?? const []),
       consentGiven: (map['consentGiven'] ?? false) as bool,
       consentUrl: map['consentUrl'] as String?,
+      hidden: (map['hidden'] ?? false) == true,
       createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
     );

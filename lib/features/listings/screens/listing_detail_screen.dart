@@ -14,6 +14,8 @@ import '../../offers/screens/offer_detail_screen.dart';
 import '../../offers/screens/place_bid_sheet.dart';
 import '../../offers/screens/propose_barter_sheet.dart';
 import '../../offers/widgets/negotiation_widgets.dart';
+import '../../profile/providers/visibility_providers.dart';
+import '../../profile/widgets/profile_unavailable_banner.dart';
 import '../providers/listing_providers.dart';
 import '../widgets/listing_card.dart' show listingPriceLabel;
 
@@ -67,6 +69,15 @@ class _ListingDetailBody extends ConsumerWidget {
     final isOwner = viewerUid == listing.ownerId;
     final forSale = listing.modes.contains(ListingMode.sale);
     final forBarter = listing.modes.contains(ListingMode.barter);
+
+    if (!isOwner && ref.watch(isProfileHiddenProvider(listing.ownerId))) {
+      return const Column(
+        children: [
+          ProfileUnavailableBanner(
+              detail: 'This listing is no longer shown in the marketplace.'),
+        ],
+      );
+    }
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 32),

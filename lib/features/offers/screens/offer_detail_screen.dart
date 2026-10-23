@@ -5,6 +5,8 @@ import '../../../models/offer.dart';
 import '../../../services/offer_repository.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../chat/chat_launcher.dart';
+import '../../profile/providers/visibility_providers.dart';
+import '../../profile/widgets/profile_unavailable_banner.dart';
 import '../providers/offer_providers.dart';
 import '../widgets/negotiation_widgets.dart';
 
@@ -86,7 +88,10 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
       appBar: AppBar(
         title: const Text('Bid / Tanyag'),
         actions: [
-          if (offerAsync.valueOrNull case final offer? when uid != null)
+          if (offerAsync.valueOrNull case final offer?
+              when uid != null &&
+                  !ref.watch(isProfileHiddenProvider(
+                      uid == offer.buyerId ? offer.sellerId : offer.buyerId)))
             MessageIconButton(
               otherId: uid == offer.buyerId ? offer.sellerId : offer.buyerId,
               listingId: offer.listingId,
@@ -116,11 +121,18 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
   Widget _body(BuildContext context, Offer offer, String uid) {
     final theme = Theme.of(context);
     final isBuyer = uid == offer.buyerId;
-    final canAct = OfferRepository.canAct(offer, uid);
+    final otherHidden = ref.watch(isProfileHiddenProvider(
+        isBuyer ? offer.sellerId : offer.buyerId));
+    final canAct = OfferRepository.canAct(offer, uid) && !otherHidden;
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        if (otherHidden) ...[
+          const ProfileUnavailableBanner(
+              detail: 'This bid can no longer be answered.'),
+          const SizedBox(height: 16),
+        ],
         Text(offer.listingTitle.isEmpty ? 'Listing' : offer.listingTitle,
             style: theme.textTheme.titleLarge),
         const SizedBox(height: 4),

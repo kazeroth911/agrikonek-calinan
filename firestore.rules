@@ -21,12 +21,24 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
+    // A hidden profile cannot receive new bids, barters or messages.
+    function isHidden(uid) {
+      return exists(/databases/$(database)/documents/hiddenProfiles/$(uid));
+    }
+
     // ---- profiles ------------------------------------------------------
-    // Read: any signed-in user (marketplace needs names/barangays).
+    // Read: any signed-in user (marketplace needs names/barangays), except
+    // that a hidden profile is readable only by its owner and admins.
+    // resource == null keeps "no profile yet" readable for the sign-in flow.
     // Create/full update: admin only (researcher-led profiling).
-    // Owners may update only their own non-privileged fields.
+    // Owners may update only their own non-privileged fields, which
+    // include hiding or unhiding themselves.
     match /profiles/{userId} {
-      allow read: if isSignedIn();
+      allow read: if isSignedIn()
+        && (resource == null
+            || resource.data.get('hidden', false) != true
+            || isOwner(userId)
+            || isAdmin());
       allow create, delete: if isAdmin();
       allow update: if isAdmin()
         || (isOwner(userId)
@@ -51,7 +63,8 @@ service cloud.firestore {
             || resource.data.sellerId == request.auth.uid
             || isAdmin());
       allow create: if isSignedIn()
-        && request.resource.data.buyerId == request.auth.uid;
+        && request.resource.data.buyerId == request.auth.uid
+        && !isHidden(request.resource.data.sellerId);
       allow update: if isSignedIn()
         && (resource.data.buyerId == request.auth.uid
             || resource.data.sellerId == request.auth.uid);
@@ -64,7 +77,8 @@ service cloud.firestore {
             || resource.data.ownerId == request.auth.uid
             || isAdmin());
       allow create: if isSignedIn()
-        && request.resource.data.proposerId == request.auth.uid;
+        && request.resource.data.proposerId == request.auth.uid
+        && !isHidden(request.resource.data.ownerId);
       allow update: if isSignedIn()
         && (resource.data.proposerId == request.auth.uid
             || resource.data.ownerId == request.auth.uid);
@@ -81,6 +95,11 @@ service cloud.firestore {
     function isParticipant(conversationId) {
       return isSignedIn()
         && request.auth.uid in get(conversationPath(conversationId)).data.participantIds;
+    }
+
+    function otherParticipant(conversationId) {
+      let ids = get(conversationPath(conversationId)).data.participantIds;
+      return ids[0] == request.auth.uid ? ids[1] : ids[0];
     }
 
     match /conversations/{conversationId} {
@@ -122,6 +141,7 @@ service cloud.firestore {
 
         // Text only for now; messages cannot be edited or deleted.
         allow create: if isParticipant(conversationId)
+          && !isHidden(otherParticipant(conversationId))
           && request.resource.data.keys().hasOnly([
                'senderId', 'text', 'attachmentUrl', 'sentAt', 'readBy'])
           && request.resource.data.senderId == request.auth.uid
@@ -211,6 +231,19 @@ service cloud.firestore {
         && request.resource.data.recipientCount > 0
         && request.resource.data.createdAt == request.time;
       allow update, delete: if false;
+    }
+
+    // ---- hidden profiles -----------------------------------------------
+    // Public list of hidden account IDs (no personal details), so every
+    // user's app can filter them out. Written together with the profile's
+    // own hidden flag by its owner or an admin.
+    match /hiddenProfiles/{userId} {
+      allow read: if isSignedIn();
+      allow create, update: if (isOwner(userId) || isAdmin())
+        && request.resource.data.keys().hasOnly(['hiddenAt', 'hiddenBy'])
+        && request.resource.data.hiddenBy == request.auth.uid
+        && request.resource.data.hiddenAt == request.time;
+      allow delete: if isOwner(userId) || isAdmin();
     }
 
     // ---- private FCM device tokens -------------------------------------

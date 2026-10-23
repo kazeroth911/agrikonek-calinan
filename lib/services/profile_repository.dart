@@ -37,6 +37,38 @@ class ProfileRepository {
         );
   }
 
+  /// Hides or unhides a profile in one batch: the flag on the profile
+  /// and the entry in the public list of hidden IDs always agree.
+  Future<void> setHidden({
+    required String uid,
+    required bool hidden,
+    required String byUid,
+  }) {
+    final batch = _db.batch();
+    final marker = _db.collection(AppConstants.colHiddenProfiles).doc(uid);
+    batch.update(_col.doc(uid), {
+      'hidden': hidden,
+      'hiddenAt': hidden ? FieldValue.serverTimestamp() : null,
+    });
+    if (hidden) {
+      batch.set(marker, {
+        'hiddenAt': FieldValue.serverTimestamp(),
+        'hiddenBy': byUid,
+      });
+    } else {
+      batch.delete(marker);
+    }
+    return batch.commit();
+  }
+
+  /// IDs of every hidden profile, live.
+  Stream<Set<String>> watchHiddenIds() {
+    return _db
+        .collection(AppConstants.colHiddenProfiles)
+        .snapshots()
+        .map((snap) => snap.docs.map((d) => d.id).toSet());
+  }
+
   /// Admin list view — newest first. Ordered by createdAt so the
   /// researcher sees their most recent field entries on top.
   Stream<List<Profile>> watchAllProfiles({String? barangay}) {

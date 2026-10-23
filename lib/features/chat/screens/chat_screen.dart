@@ -10,6 +10,8 @@ import '../../../models/message.dart';
 import '../../../services/push_notification_service.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../notifications/providers/notification_providers.dart';
+import '../../profile/providers/visibility_providers.dart';
+import '../../profile/widgets/profile_unavailable_banner.dart';
 import '../providers/chat_providers.dart';
 
 /// One-to-one chat. Opening it clears the unread count and marks this
@@ -127,11 +129,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final title = (conversation == null || uid == null)
         ? 'Chat'
         : conversation.nameOf(conversation.otherParticipant(uid));
+    final otherHidden = conversation != null &&
+        uid != null &&
+        ref.watch(isProfileHiddenProvider(conversation.otherParticipant(uid)));
 
     return Scaffold(
       appBar: AppBar(title: Text(title)),
       body: Column(
         children: [
+          if (otherHidden)
+            const ProfileUnavailableBanner(
+                detail: 'You can read past messages but not send new ones.'),
           if (conversation?.relatedListingTitle != null)
             Material(
               color: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -178,6 +186,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   Expanded(
                     child: TextField(
                       controller: _text,
+                      enabled: !otherHidden,
                       minLines: 1,
                       maxLines: 4,
                       maxLength: Message.maxLength,
@@ -194,8 +203,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   IconButton.filled(
                     tooltip: 'Send / Ipadala',
                     icon: const Icon(Icons.send),
-                    onPressed:
-                        conversation == null ? null : () => _send(conversation),
+                    onPressed: (conversation == null || otherHidden)
+                        ? null
+                        : () => _send(conversation),
                   ),
                 ],
               ),

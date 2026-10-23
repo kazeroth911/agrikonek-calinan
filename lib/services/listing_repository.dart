@@ -74,6 +74,13 @@ class ListingRepository {
   /// Pure keyword filter over the streamed feed — matches title,
   /// description, category, owner name, and barangay. Pure Dart so it is
   /// unit-testable per the 70%-coverage commitment on business logic.
+  /// Drops listings whose owner has hidden their profile.
+  static List<Listing> withoutHiddenOwners(
+      List<Listing> listings, Set<String> hiddenOwnerIds) {
+    if (hiddenOwnerIds.isEmpty) return listings;
+    return listings.where((l) => !hiddenOwnerIds.contains(l.ownerId)).toList();
+  }
+
   static List<Listing> filterByKeyword(List<Listing> listings, String query) {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) return listings;

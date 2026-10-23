@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/constants/app_constants.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../notifications/widgets/notification_bell.dart';
+import '../../profile/providers/visibility_providers.dart';
 import '../providers/chat_providers.dart';
 import 'chat_screen.dart';
 
@@ -27,6 +29,8 @@ class ConversationsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final uid = ref.watch(authStateProvider).valueOrNull?.uid;
     final conversations = ref.watch(myConversationsProvider);
+    final hidden =
+        ref.watch(hiddenProfileIdsProvider).valueOrNull ?? const <String>{};
 
     return Scaffold(
       appBar: AppBar(
@@ -60,6 +64,7 @@ class ConversationsScreen extends ConsumerWidget {
             separatorBuilder: (_, __) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final c = items[index];
+              final otherHidden = hidden.contains(c.otherParticipant(uid));
               final otherName = c.nameOf(c.otherParticipant(uid));
               final unread = c.unreadFor(uid);
               final prefix = c.lastSenderId == uid ? 'You: ' : '';
@@ -80,7 +85,9 @@ class ConversationsScreen extends ConsumerWidget {
                           unread > 0 ? FontWeight.bold : FontWeight.normal),
                 ),
                 subtitle: Text(
-                  '$about$prefix${c.lastMessage ?? ''}',
+                  otherHidden
+                      ? AppConstants.profileUnavailable
+                      : '$about$prefix${c.lastMessage ?? ''}',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),

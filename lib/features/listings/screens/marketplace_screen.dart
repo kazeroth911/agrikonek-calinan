@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../notifications/widgets/notification_bell.dart';
+import '../../profile/screens/my_profile_screen.dart';
 import '../providers/listing_providers.dart';
 import '../widgets/listing_card.dart';
 import 'listing_detail_screen.dart';
@@ -18,12 +19,20 @@ class MarketplaceScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final feed = ref.watch(filteredFeedProvider);
+    final meHidden =
+        ref.watch(currentProfileProvider).valueOrNull?.hidden ?? false;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Calinan Marketplace'),
         actions: [
           const NotificationBell(),
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            tooltip: 'My profile / Akong profile',
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const MyProfileScreen())),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Sign out',
@@ -40,6 +49,20 @@ class MarketplaceScreen extends ConsumerWidget {
       body: SafeArea(
         child: Column(
           children: [
+            if (meHidden)
+              MaterialBanner(
+                leading: const Icon(Icons.visibility_off),
+                content: const Text(
+                    'Your profile is hidden. Others cannot see your listings.'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                            builder: (_) => const MyProfileScreen())),
+                    child: const Text('CHANGE'),
+                  ),
+                ],
+              ),
             const Padding(
               padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
               child: _SearchField(),

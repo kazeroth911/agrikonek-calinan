@@ -5,6 +5,8 @@ import '../../../models/barter_proposal.dart';
 import '../../../services/barter_repository.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../chat/chat_launcher.dart';
+import '../../profile/providers/visibility_providers.dart';
+import '../../profile/widgets/profile_unavailable_banner.dart';
 import '../providers/barter_providers.dart';
 import '../widgets/negotiation_widgets.dart';
 
@@ -85,7 +87,11 @@ class _BarterDetailScreenState extends ConsumerState<BarterDetailScreen> {
       appBar: AppBar(
         title: const Text('Barter / Baylo'),
         actions: [
-          if (barterAsync.valueOrNull case final proposal? when uid != null)
+          if (barterAsync.valueOrNull case final proposal?
+              when uid != null &&
+                  !ref.watch(isProfileHiddenProvider(uid == proposal.proposerId
+                      ? proposal.ownerId
+                      : proposal.proposerId)))
             MessageIconButton(
               otherId: uid == proposal.proposerId
                   ? proposal.ownerId
@@ -117,7 +123,9 @@ class _BarterDetailScreenState extends ConsumerState<BarterDetailScreen> {
   Widget _body(BuildContext context, BarterProposal proposal, String uid) {
     final theme = Theme.of(context);
     final isProposer = uid == proposal.proposerId;
-    final canAct = BarterRepository.canAct(proposal, uid);
+    final otherHidden = ref.watch(isProfileHiddenProvider(
+        isProposer ? proposal.ownerId : proposal.proposerId));
+    final canAct = BarterRepository.canAct(proposal, uid) && !otherHidden;
 
     // Item directions are written from the proposer's point of view;
     // flip the headings for the listing owner.
@@ -131,6 +139,11 @@ class _BarterDetailScreenState extends ConsumerState<BarterDetailScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        if (otherHidden) ...[
+          const ProfileUnavailableBanner(
+              detail: 'This barter can no longer be answered.'),
+          const SizedBox(height: 16),
+        ],
         Text(
             proposal.listingTitle.isEmpty
                 ? 'Listing'

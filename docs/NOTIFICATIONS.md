@@ -43,6 +43,7 @@ The record is always saved before the push is sent. If a push is lost (no signal
 | `lib/features/chat/` | Messages tab, chat screen, Message buttons; each sent message writes a `msg` notification |
 | `lib/features/announcements/` | Researcher announcements: compose, sent history, and the farmer's reading screen |
 | `lib/services/announcement_repository.dart` | Saves each announcement and writes one `admin` notification per recipient |
+| `lib/features/profile/` | My profile screen with the hide switch, hidden-ID list, "This profile is unavailable." banner |
 | `functions/index.js` | Cloud Function that sends the push (Blaze) |
 | `functions/push_sender.js` | The send logic itself, shared by the function and the relay |
 | `functions/local_relay.js` | Laptop stand-in for the function while on Spark (testing only) |
@@ -127,6 +128,18 @@ Use a researcher-admin account and at least one farmer account, with the relay r
 5. **Inbox:** the same announcement is in the farmer's bell list with a megaphone icon; tapping it opens the full text.
 6. **Evidence:** each farmer's notification record has `type: "admin"` and `pushStatus: "sent"`, and `announcements` has one document with `recipientCount`.
 7. **Rules:** in the Rules Playground, as a farmer, try creating a notification with `type: "admin"` and reading `announcements`. Both must be denied.
+
+## 4d. Test profile hiding
+
+Use farmer A (seller) and farmer B (buyer) who already have a bid, a barter and a chat with each other, plus a researcher-admin account.
+
+1. **Farmer hides self:** on A, tap the person icon on the Market screen → **Hide my profile** → confirm. A's Market screen shows "Your profile is hidden."
+2. **Feed and search:** on B, A's listings are gone from the Market and from search.
+3. **Existing items:** on B, open the bid, the barter and the chat with A. Each shows "This profile is unavailable."; the Accept/Reject/Counter buttons are gone, the chat cannot send, and the chat icon at the top is gone. The Messages list shows "This profile is unavailable." under A's name.
+4. **Old links:** on B, opening one of A's listings from an older notification shows "This profile is unavailable."
+5. **Unhide:** on A, turn the switch off. Everything returns on B without restarting the app.
+6. **Admin:** as the admin, open **Profiled Accounts**, tap the eye icon on A, and confirm. The name shows "(hidden)". Repeat steps 2–3 on B, then unhide from the same screen.
+7. **Rules:** in the Rules Playground, as B, try reading `profiles/<A's uid>` while A is hidden (denied), creating an offer with `sellerId` = A (denied), and reading `hiddenProfiles` (allowed).
 
 ## 5. What is not covered yet
 

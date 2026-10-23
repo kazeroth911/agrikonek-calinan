@@ -13,6 +13,14 @@ class AppConstants {
   static const colDeviceTokens = 'deviceTokens';
   static const colAnnouncements = 'announcements';
 
+  /// IDs of hidden profiles. Readable by every signed-in user so the app
+  /// can filter the marketplace, while the hidden profiles themselves
+  /// are readable only by their owner and admins.
+  static const colHiddenProfiles = 'hiddenProfiles';
+
+  /// Shown wherever a hidden profile would otherwise appear.
+  static const profileUnavailable = 'This profile is unavailable.';
+
   /// Roles supported by the multi-role account model.
   static const roleSeller = 'seller';
   static const roleBuyer = 'buyer';

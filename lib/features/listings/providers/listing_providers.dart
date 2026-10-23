@@ -5,6 +5,7 @@ import '../../../models/listing.dart';
 import '../../../models/profile.dart';
 import '../../../services/listing_repository.dart';
 import '../../auth/providers/auth_providers.dart';
+import '../../profile/providers/visibility_providers.dart';
 
 // ---- Repository -------------------------------------------------------
 final listingRepositoryProvider = Provider<ListingRepository>(
@@ -28,15 +29,18 @@ final listingFeedProvider = StreamProvider<List<Listing>>((ref) {
   return ref.watch(listingRepositoryProvider).watchFeed();
 });
 
-/// The feed the marketplace screen actually renders: category chip +
-/// keyword search applied over the live stream.
+/// The feed the marketplace screen actually renders: hidden profiles'
+/// listings removed, then category chip + keyword search applied over
+/// the live stream.
 final filteredFeedProvider = Provider<AsyncValue<List<Listing>>>((ref) {
   final feed = ref.watch(listingFeedProvider);
   final category = ref.watch(selectedCategoryProvider);
   final query = ref.watch(searchQueryProvider);
+  final hidden =
+      ref.watch(hiddenProfileIdsProvider).valueOrNull ?? const <String>{};
 
   return feed.whenData((listings) {
-    var result = listings;
+    var result = ListingRepository.withoutHiddenOwners(listings, hidden);
     if (category != null) {
       result = result.where((l) => l.category == category).toList();
     }
