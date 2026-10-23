@@ -20,6 +20,9 @@ class Message {
   final DateTime? sentAt;
   final List<String> readBy;
 
+  /// Longest message the app and the security rules accept.
+  static const maxLength = 1000;
+
   Map<String, dynamic> toMap() {
     return {
       'senderId': senderId,

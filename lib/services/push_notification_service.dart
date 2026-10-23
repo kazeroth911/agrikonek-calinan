@@ -23,6 +23,10 @@ class PushNotificationService {
 
   bool _initialized = false;
 
+  /// Set by ChatScreen while a chat is on screen, so a push for that same
+  /// chat does not also pop up a snackbar.
+  String? activeConversationId;
+
   String? _currentToken;
   String? _registeredUid;
   String? _registeredToken;
@@ -213,6 +217,11 @@ class PushNotificationService {
 
     if (kDebugMode) {
       debugPrint('Foreground FCM received: $title');
+    }
+
+    final conversationId = message.data['conversationId'];
+    if (conversationId != null && conversationId == activeConversationId) {
+      return;
     }
 
     scaffoldMessengerKey.currentState?.showSnackBar(

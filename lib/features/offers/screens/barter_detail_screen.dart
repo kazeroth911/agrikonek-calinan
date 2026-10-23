@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/barter_proposal.dart';
 import '../../../services/barter_repository.dart';
 import '../../auth/providers/auth_providers.dart';
+import '../../chat/chat_launcher.dart';
 import '../providers/barter_providers.dart';
 import '../widgets/negotiation_widgets.dart';
 
@@ -81,7 +82,19 @@ class _BarterDetailScreenState extends ConsumerState<BarterDetailScreen> {
     final uid = ref.watch(authStateProvider).valueOrNull?.uid;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Barter / Baylo')),
+      appBar: AppBar(
+        title: const Text('Barter / Baylo'),
+        actions: [
+          if (barterAsync.valueOrNull case final proposal? when uid != null)
+            MessageIconButton(
+              otherId: uid == proposal.proposerId
+                  ? proposal.ownerId
+                  : proposal.proposerId,
+              listingId: proposal.listingId,
+              listingTitle: proposal.listingTitle,
+            ),
+        ],
+      ),
       body: barterAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => NegotiationListMessage(

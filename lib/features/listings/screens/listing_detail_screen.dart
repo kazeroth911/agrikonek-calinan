@@ -6,6 +6,7 @@ import '../../../models/barter_proposal.dart';
 import '../../../models/listing.dart';
 import '../../../models/offer.dart';
 import '../../auth/providers/auth_providers.dart';
+import '../../chat/chat_launcher.dart';
 import '../../offers/providers/barter_providers.dart';
 import '../../offers/providers/offer_providers.dart';
 import '../../offers/screens/barter_detail_screen.dart';
@@ -13,14 +14,13 @@ import '../../offers/screens/offer_detail_screen.dart';
 import '../../offers/screens/place_bid_sheet.dart';
 import '../../offers/screens/propose_barter_sheet.dart';
 import '../../offers/widgets/negotiation_widgets.dart';
-import '../../shell/coming_soon_screen.dart';
 import '../providers/listing_providers.dart';
 import '../widgets/listing_card.dart' show listingPriceLabel;
 
 /// Full listing view: photo gallery, price, farmer info with barangay,
 /// straight-line distance preview (display only, per panel decision),
-/// and the Message / Bid / Barter entry points whose flows land in
-/// Sprints 3-4. Owners see manage actions (close/delete) instead.
+/// and the Message / Bid / Barter entry points. Owners see manage
+/// actions (close/delete) instead.
 class ListingDetailScreen extends ConsumerWidget {
   const ListingDetailScreen({super.key, required this.listingId});
 
@@ -251,9 +251,8 @@ class _FarmerCard extends ConsumerWidget {
   }
 }
 
-/// Sprint 3 wires bidding and barter to their real flows; messaging
-/// stays a placeholder until Sprint 4.
-class _BuyerActions extends StatelessWidget {
+/// Message, bid and barter entry points for anyone who is not the owner.
+class _BuyerActions extends ConsumerWidget {
   const _BuyerActions({
     required this.listing,
     required this.forSale,
@@ -265,14 +264,19 @@ class _BuyerActions extends StatelessWidget {
   final bool forBarter;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         FilledButton.icon(
-          onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const ComingSoonScreen(
-                  title: 'Messaging', sprintLabel: 'Sprint 4'))),
+          onPressed: () => openChatWith(
+            context,
+            ref,
+            otherId: listing.ownerId,
+            otherName: listing.ownerName,
+            listingId: listing.listingId,
+            listingTitle: listing.title,
+          ),
           icon: const Icon(Icons.chat_bubble_outline),
           label: const Text('Message / Mensahe'),
         ),

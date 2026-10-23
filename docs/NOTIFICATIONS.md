@@ -39,6 +39,8 @@ The record is always saved before the push is sent. If a push is lost (no signal
 | `lib/features/notifications/notification_router.dart` | Opens the offer or barter a notification is about |
 | `lib/features/notifications/screens/notifications_screen.dart` | Inbox |
 | `lib/features/notifications/widgets/notification_bell.dart` | Bell with unread count on Market, Bids, Barter and Researcher screens |
+| `lib/services/chat_repository.dart` | Chat threads and messages in Firestore |
+| `lib/features/chat/` | Messages tab, chat screen, Message buttons; each sent message writes a `msg` notification |
 | `functions/index.js` | Cloud Function that sends the push (Blaze) |
 | `functions/push_sender.js` | The send logic itself, shared by the function and the relay |
 | `functions/local_relay.js` | Laptop stand-in for the function while on Spark (testing only) |
@@ -100,9 +102,21 @@ Use test accounts only. A is the seller, B is the buyer.
 8. **Sign-out:** sign out on A. Its token document disappears. A new bid now gives `pushStatus: "no_device"` and no push.
 9. **Rules:** in the Firestore Rules Playground, try creating a notification as a user who is not part of the offer. It must be denied.
 
+## 4b. Test chat
+
+Use the same two accounts, with the relay running on Spark.
+
+1. **Start a chat:** on B (buyer), open A's listing and tap **Message / Mensahe**. The chat opens with "About: <listing>" at the top.
+2. **Send:** B types a message and sends. It appears at once, then its time replaces "Sending...".
+3. **Push:** with A's app closed, A gets a push titled with B's name and the message text. Tapping it opens the chat.
+4. **Badge:** with A's app open on Market, the **Messages** tab shows an unread count. Opening the chat clears it, and the matching bell notifications turn read.
+5. **No double alert:** while A has that chat open, a new message from B appears in the chat without a snackbar.
+6. **From a bid or barter:** open an offer or barter and tap the chat icon at the top right. It opens the same thread with that person.
+7. **Rules:** in the Rules Playground, as a third user, try reading `conversations/<A_B id>/messages` and creating a message there. Both must be denied.
+
 ## 5. What is not covered yet
 
-- `msg` notifications are ready in the rules, text and function, but nothing sends them until one-to-one chat is built.
 - `admin` announcements are allowed for admins only, but there is no screen to write one yet.
 - Push wording is English only. A Cebuano version should be checked by a Cebuano speaker before it is added.
+- Chat is text only (no photos), and messages cannot be edited or deleted.
 - iOS is not set up.

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/offer.dart';
 import '../../../services/offer_repository.dart';
 import '../../auth/providers/auth_providers.dart';
+import '../../chat/chat_launcher.dart';
 import '../providers/offer_providers.dart';
 import '../widgets/negotiation_widgets.dart';
 
@@ -82,7 +83,17 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
     final uid = ref.watch(authStateProvider).valueOrNull?.uid;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Bid / Tanyag')),
+      appBar: AppBar(
+        title: const Text('Bid / Tanyag'),
+        actions: [
+          if (offerAsync.valueOrNull case final offer? when uid != null)
+            MessageIconButton(
+              otherId: uid == offer.buyerId ? offer.sellerId : offer.buyerId,
+              listingId: offer.listingId,
+              listingTitle: offer.listingTitle,
+            ),
+        ],
+      ),
       body: offerAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => NegotiationListMessage(

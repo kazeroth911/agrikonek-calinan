@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../admin/screens/admin_home_screen.dart';
 import '../auth/providers/auth_providers.dart';
+import '../chat/providers/chat_providers.dart';
+import '../chat/screens/conversations_screen.dart';
 import '../listings/screens/marketplace_screen.dart';
 import '../offers/providers/barter_providers.dart';
 import '../offers/providers/offer_providers.dart';
@@ -11,7 +13,7 @@ import '../offers/screens/my_offers_screen.dart';
 
 /// Routes the signed-in user by role:
 ///   admin  -> AdminHomeScreen (researcher profiling tools)
-///   others -> bottom-nav shell: Market / Bids / Barters (Sprint 3)
+///   others -> bottom-nav shell: Market / Bids / Barters / Messages
 class HomeShell extends ConsumerWidget {
   const HomeShell({super.key});
 
@@ -49,6 +51,7 @@ class _FarmerShellState extends ConsumerState<_FarmerShell> {
   Widget build(BuildContext context) {
     final offerCount = ref.watch(offersNeedingActionProvider);
     final barterCount = ref.watch(bartersNeedingActionProvider);
+    final chatCount = ref.watch(unreadChatCountProvider);
 
     return Scaffold(
       body: IndexedStack(
@@ -57,6 +60,7 @@ class _FarmerShellState extends ConsumerState<_FarmerShell> {
           MarketplaceScreen(),
           MyOffersScreen(),
           MyBartersScreen(),
+          ConversationsScreen(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -85,6 +89,15 @@ class _FarmerShellState extends ConsumerState<_FarmerShell> {
             ),
             selectedIcon: const Icon(Icons.swap_horiz),
             label: 'Barter',
+          ),
+          NavigationDestination(
+            icon: Badge(
+              isLabelVisible: chatCount > 0,
+              label: Text(chatCount > 99 ? '99+' : '$chatCount'),
+              child: const Icon(Icons.chat_bubble_outline),
+            ),
+            selectedIcon: const Icon(Icons.chat_bubble),
+            label: 'Messages',
           ),
         ],
       ),
