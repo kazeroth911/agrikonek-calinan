@@ -11,6 +11,7 @@ class AppConstants {
   static const colMessages = 'messages'; // subcollection of conversations
   static const colNotifications = 'notifications';
   static const colDeviceTokens = 'deviceTokens';
+  static const colAnnouncements = 'announcements';
 
   /// Roles supported by the multi-role account model.
   static const roleSeller = 'seller';

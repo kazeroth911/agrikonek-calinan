@@ -190,6 +190,29 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ---- announcements ----------------------------------------------------
+    // Sent history for researcher-admins. Recipients read the text from
+    // their own 'admin' notification, not from here.
+    match /announcements/{announcementId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly([
+             'title', 'body', 'audience', 'barangay', 'recipientCount',
+             'sentBy', 'sentByName', 'createdAt'])
+        && request.resource.data.sentBy == request.auth.uid
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 80
+        && request.resource.data.body is string
+        && request.resource.data.body.size() > 0
+        && request.resource.data.body.size() <= 500
+        && request.resource.data.audience in ['all', 'barangay', 'selected']
+        && request.resource.data.recipientCount is int
+        && request.resource.data.recipientCount > 0
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+
     // ---- private FCM device tokens -------------------------------------
     // Each signed-in user can manage only their own device registrations.
     match /deviceTokens/{userId}/tokens/{tokenId} {

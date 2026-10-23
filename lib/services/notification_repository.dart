@@ -31,6 +31,12 @@ class NotificationRepository {
     });
   }
 
+  /// One record, live. The read rule limits it to its recipient.
+  Stream<AppNotification?> watchOne(String notificationId) {
+    return _col.doc(notificationId).snapshots().map(
+        (doc) => doc.exists ? AppNotification.fromDoc(doc) : null);
+  }
+
   /// The rules permit a recipient to mark only their own record as read.
   Future<void> markRead(String notificationId) {
     return _col.doc(notificationId).update({'read': true});

@@ -47,6 +47,8 @@ class NotificationsScreen extends ConsumerWidget {
       Navigator.of(context),
       type: notification.type,
       payload: notification.payload,
+      notificationId: notification.notificationId,
+      createdAt: notification.createdAt,
     );
   }
 

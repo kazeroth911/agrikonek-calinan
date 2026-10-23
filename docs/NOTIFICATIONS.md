@@ -41,6 +41,8 @@ The record is always saved before the push is sent. If a push is lost (no signal
 | `lib/features/notifications/widgets/notification_bell.dart` | Bell with unread count on Market, Bids, Barter and Researcher screens |
 | `lib/services/chat_repository.dart` | Chat threads and messages in Firestore |
 | `lib/features/chat/` | Messages tab, chat screen, Message buttons; each sent message writes a `msg` notification |
+| `lib/features/announcements/` | Researcher announcements: compose, sent history, and the farmer's reading screen |
+| `lib/services/announcement_repository.dart` | Saves each announcement and writes one `admin` notification per recipient |
 | `functions/index.js` | Cloud Function that sends the push (Blaze) |
 | `functions/push_sender.js` | The send logic itself, shared by the function and the relay |
 | `functions/local_relay.js` | Laptop stand-in for the function while on Spark (testing only) |
@@ -114,9 +116,20 @@ Use the same two accounts, with the relay running on Spark.
 6. **From a bid or barter:** open an offer or barter and tap the chat icon at the top right. It opens the same thread with that person.
 7. **Rules:** in the Rules Playground, as a third user, try reading `conversations/<A_B id>/messages` and creating a message there. Both must be denied.
 
+## 4c. Test announcements
+
+Use a researcher-admin account and at least one farmer account, with the relay running on Spark.
+
+1. **Compose:** as the admin, open **Announcements** on the Researcher screen, tap **New**, and write a title and message.
+2. **Audience:** try **Everyone**, then **Barangay** (pick the farmer's barangay), then **Choose**. The line under the options shows how many people it will reach. Admin accounts are never counted.
+3. **Send:** confirm. The announcement appears in the sent history with its audience and count.
+4. **Push:** with the farmer's app closed, the farmer gets a push with the title and message. Tapping it opens the full announcement.
+5. **Inbox:** the same announcement is in the farmer's bell list with a megaphone icon; tapping it opens the full text.
+6. **Evidence:** each farmer's notification record has `type: "admin"` and `pushStatus: "sent"`, and `announcements` has one document with `recipientCount`.
+7. **Rules:** in the Rules Playground, as a farmer, try creating a notification with `type: "admin"` and reading `announcements`. Both must be denied.
+
 ## 5. What is not covered yet
 
-- `admin` announcements are allowed for admins only, but there is no screen to write one yet.
 - Push wording is English only. A Cebuano version should be checked by a Cebuano speaker before it is added.
 - Chat is text only (no photos), and messages cannot be edited or deleted.
 - iOS is not set up.

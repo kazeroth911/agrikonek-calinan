@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../announcements/screens/announcements_screen.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../notifications/widgets/notification_bell.dart';
 import 'profile_list_screen.dart';
@@ -53,6 +54,16 @@ class AdminHomeScreen extends ConsumerWidget {
               subtitle: const Text('Review and verify preloaded profiles'),
               onTap: () => Navigator.of(context).push(MaterialPageRoute(
                   builder: (_) => const ProfileListScreen())),
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.campaign, size: 36),
+              title: const Text('Announcements'),
+              subtitle: const Text(
+                  'Send a notice to all farmers, one barangay, or chosen people'),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => const AnnouncementsScreen())),
             ),
           ),
         ],
