@@ -36,7 +36,7 @@ void main() {
       expect(notification.type, 'barter');
       expect(notification.payload['barterId'], 'b1');
       expect(notification.read, isTrue);
-      expect(notification.createdAt, created);
+      expect(notification.createdAt!.isAtSameMomentAs(created), isTrue);
     });
 
     test('handles an empty map defensively', () {
