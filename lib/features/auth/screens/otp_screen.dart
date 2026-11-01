@@ -7,7 +7,8 @@ import '../../../services/auth_service.dart';
 import '../providers/auth_providers.dart';
 import '../../../core/l10n/app_language.dart';
 
-/// Phone-OTP sign-in for farmers without email addresses (paper §4.6).
+/// Phone sign-in for farmers (paper §3.5.4). After the SMS code is
+/// confirmed, HomeShell offers the prepared profile with this number.
 /// Two stages on one screen: enter phone -> enter the 6-digit SMS code.
 class OtpScreen extends ConsumerStatefulWidget {
   const OtpScreen({super.key});
@@ -120,7 +121,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-          title: Text(context.tr('Sign in with OTP', 'Mo-login gamit ang OTP'))),
+          title: Text(context.tr('Sign in with phone', 'Mo-login gamit ang cellphone'))),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),

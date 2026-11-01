@@ -41,6 +41,8 @@ The first run downloads the emulator (about 60 MB). Every test should pass. A fa
 - **Chat:** a thread's ID must be the two sorted user IDs. Outsiders cannot read or send, and messages cannot be edited.
 - **Profile hiding:** a hidden profile is readable only by its owner and admins. It receives no new bids or messages, and only the owner or an admin can hide it.
 - **Profiles and announcements:** farmers cannot make themselves admin or change their consent record. Only admins can read the announcement history.
+- **Profile claiming:** only the person whose verified phone number matches a prepared profile can read it and claim it, the copy must be identical apart from the claim fields, it can be claimed once, and the copy and the claimed mark must be written together. Owners cannot change their phone number, cooperative or claim fields.
+- **Cooperatives:** only researcher-admins can read, add or rename cooperatives and record a farmer's cooperative.
 - **Push tokens:** a user can save a push token only under their own account, with the language set to English or Cebuano.
 
 ## Storage rules

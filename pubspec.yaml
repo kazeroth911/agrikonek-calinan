@@ -19,8 +19,8 @@ dependencies:
   geolocator: ^13.0.1
   intl: ^0.19.0
   # Map preview on listing detail (paper §2.8, Table 3.2): OpenStreetMap
-  # tiles, no API key or billing account.
-  flutter_map: ^8.1.1
+  # tiles, no API key or billing account. 8.2+ caches tiles on the phone.
+  flutter_map: ^8.2.0
   latlong2: ^0.9.1
   # Remembers the chosen app language on the phone.
   shared_preferences: ^2.3.0

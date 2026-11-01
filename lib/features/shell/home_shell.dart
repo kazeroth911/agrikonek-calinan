@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../admin/screens/admin_home_screen.dart';
 import '../auth/providers/auth_providers.dart';
+import '../auth/screens/claim_profile_screen.dart';
 import '../chat/providers/chat_providers.dart';
 import '../chat/screens/conversations_screen.dart';
 import '../listings/screens/marketplace_screen.dart';
@@ -27,7 +28,16 @@ class HomeShell extends ConsumerWidget {
           const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, _) => _MissingProfileScreen(detail: e.toString()),
       data: (profile) {
-        if (profile == null) return const _MissingProfileScreen();
+        if (profile == null) {
+          // A phone sign-in with no profile yet: offer the farmer the
+          // researcher-prepared profile with the same number (§3.5.4).
+          final phone = ref.watch(authStateProvider).valueOrNull?.phoneNumber;
+          if (phone != null && phone.isNotEmpty) {
+            return ClaimProfileScreen(phone: phone);
+          }
+          return const _MissingProfileScreen();
+        }
+        if (profile.isClaimed) return const MovedAccountScreen();
         if (profile.isAdmin) return const AdminHomeScreen();
         return const _FarmerShell();
       },

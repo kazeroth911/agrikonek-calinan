@@ -5,6 +5,7 @@ import '../../announcements/screens/announcements_screen.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../notifications/widgets/notification_bell.dart';
 import '../../settings/settings_screen.dart';
+import 'cooperatives_screen.dart';
 import 'profile_list_screen.dart';
 import 'profiling_form_screen.dart';
 import '../../../core/l10n/app_language.dart';
@@ -63,6 +64,16 @@ class AdminHomeScreen extends ConsumerWidget {
               subtitle: const Text('Review and verify preloaded profiles'),
               onTap: () => Navigator.of(context).push(MaterialPageRoute(
                   builder: (_) => const ProfileListScreen())),
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.groups_outlined, size: 36),
+              title: Text(context.tr('Cooperatives', 'Mga Kooperatiba')),
+              subtitle: const Text(
+                  'Partner cooperatives that confirm members who agreed (C5)'),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => const CooperativesScreen())),
             ),
           ),
           Card(

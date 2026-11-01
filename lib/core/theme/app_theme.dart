@@ -129,7 +129,8 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size.fromHeight(52),
+          // Not full width: outlined buttons also sit inside rows.
+          minimumSize: const Size(64, 52),
           shape: shape,
           side: BorderSide(color: scheme.outline),
           textStyle: text.labelLarge,

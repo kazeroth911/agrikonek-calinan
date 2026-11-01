@@ -28,23 +28,92 @@ service cloud.firestore {
 
     // ---- profiles ------------------------------------------------------
     // Read: any signed-in user (marketplace needs names/barangays), except
-    // that a hidden profile is readable only by its owner and admins.
-    // resource == null keeps "no profile yet" readable for the sign-in flow.
-    // Create/full update: admin only (researcher-led profiling).
-    // Owners may update only their own non-privileged fields, which
-    // include hiding or unhiding themselves.
+    // that a hidden profile is readable only by its owner, admins, and
+    // the phone-verified person whose number it carries (so that person
+    // can find and claim it). resource == null keeps "no profile yet"
+    // readable for the sign-in flow.
+    // Create/full update: admin only (researcher-led profiling), plus the
+    // profile claim below. Owners may update only their own
+    // non-privileged fields, which include hiding or unhiding themselves.
+    function verifiedPhone() {
+      return request.auth.token.get('phone_number', '');
+    }
+
+    // Profile claiming (paper §3.5.4), checked here instead of in a Cloud
+    // Function. A phone-verified user copies the researcher-prepared
+    // profile with the same number to their own account. The copy must be
+    // identical apart from the claim fields, and the prepared profile must
+    // be marked claimed by them in the same batch.
+    function isValidClaim(userId) {
+      let src = request.resource.data.get('claimedFrom', '');
+      let prepared = get(profilePath(src)).data;
+      return isOwner(userId)
+        && verifiedPhone() != ''
+        && src is string && src != '' && src != userId
+        && exists(profilePath(src))
+        && prepared.get('phone', '') == verifiedPhone()
+        && prepared.get('claimedBy', null) == null
+        && prepared.roles.get('admin', false) != true
+        && request.resource.data.diff(prepared).affectedKeys()
+             .hasOnly(['claimedFrom', 'claimedAt'])
+        && request.resource.data.claimedAt == request.time
+        && getAfter(profilePath(src)).data.get('claimedBy', '') == userId;
+    }
+
+    // The matching mark on the prepared profile.
+    function isClaimMark(userId) {
+      return isSignedIn()
+        && request.auth.uid != userId
+        && verifiedPhone() != ''
+        && resource.data.get('phone', '') == verifiedPhone()
+        && resource.data.get('claimedBy', null) == null
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['claimedBy', 'claimedAt'])
+        && request.resource.data.claimedBy == request.auth.uid
+        && request.resource.data.claimedAt == request.time
+        && getAfter(profilePath(request.auth.uid)).data.get('claimedFrom', '') == userId;
+    }
+
     match /profiles/{userId} {
       allow read: if isSignedIn()
         && (resource == null
             || resource.data.get('hidden', false) != true
             || isOwner(userId)
-            || isAdmin());
-      allow create, delete: if isAdmin();
+            || isAdmin()
+            || (verifiedPhone() != ''
+                && resource.data.phone == verifiedPhone()));
+      allow create: if isAdmin() || isValidClaim(userId);
+      allow delete: if isAdmin();
       allow update: if isAdmin()
+        || isClaimMark(userId)
         || (isOwner(userId)
             && !request.resource.data.diff(resource.data)
                  .affectedKeys().hasAny(['roles', 'createdAt', 'consentUrl',
-                                         'consentGiven', 'verificationLevel']));
+                                         'consentGiven', 'verificationLevel',
+                                         'phone', 'cooperativeId',
+                                         'claimedBy', 'claimedFrom',
+                                         'claimedAt']));
+    }
+
+    // ---- cooperatives --------------------------------------------------
+    // Research partners that confirm members' profiles (C5, Table 3.4).
+    // Managed and read only by researcher-admins: the marketplace shows
+    // the "Cooperative-confirmed" mark, not the cooperative's name.
+    match /cooperatives/{cooperativeId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly(['name', 'barangay', 'createdAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.createdAt == request.time;
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['name', 'barangay'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 120;
+      allow delete: if isAdmin();
     }
 
     // ---- listings ------------------------------------------------------

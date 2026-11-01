@@ -55,6 +55,71 @@ class ProfileRepository {
     return batch.commit();
   }
 
+  // ---- Profile claiming (paper §3.5.4) ------------------------------------
+  //
+  // A farmer who joins the separately consented testing phase signs in
+  // with phone verification. The app then finds the researcher-prepared
+  // profile with the same verified number and copies it to the new
+  // account. The paper's design does this in a Cloud Function; here the
+  // security rules check the same conditions instead, so it works on the
+  // no-cost Spark plan:
+  //  - the prepared profile's phone equals the verified phone number;
+  //  - it has not been claimed and is not a researcher account;
+  //  - the copy is identical except for the claim fields;
+  //  - the copy and the "claimed" mark are written together.
+
+  /// Unclaimed prepared profiles for this verified [e164Phone]. Usually
+  /// one, but family members may share a phone, so the farmer picks.
+  Future<List<DocumentSnapshot<Map<String, dynamic>>>> findClaimableProfiles({
+    required String e164Phone,
+    required String uid,
+  }) async {
+    final snap =
+        await _col.where('phone', isEqualTo: e164Phone).limit(10).get();
+    return [
+      for (final doc in snap.docs)
+        if (doc.id != uid &&
+            doc.data()['claimedBy'] == null &&
+            !(doc.data()['roles'] is Map &&
+                (doc.data()['roles'] as Map)['admin'] == true))
+          doc,
+    ];
+  }
+
+  /// Copies the prepared profile to [uid] and marks the original claimed,
+  /// in one batch. A hidden profile stays hidden: the farmer (or a
+  /// researcher) shows it when the testing-phase consent allows.
+  Future<void> claimProfile({
+    required DocumentSnapshot<Map<String, dynamic>> prepared,
+    required String uid,
+  }) {
+    final data = prepared.data();
+    if (data == null) throw StateError('That profile no longer exists.');
+    final batch = _db.batch();
+    batch.set(_col.doc(uid), {
+      ...data,
+      'claimedFrom': prepared.id,
+      'claimedAt': FieldValue.serverTimestamp(),
+    });
+    batch.update(prepared.reference, {
+      'claimedBy': uid,
+      'claimedAt': FieldValue.serverTimestamp(),
+    });
+    if (data['hidden'] == true) {
+      batch.set(_db.collection(AppConstants.colHiddenProfiles).doc(uid), {
+        'hiddenAt': FieldValue.serverTimestamp(),
+        'hiddenBy': uid,
+      });
+    }
+    return batch.commit();
+  }
+
+  /// Researcher-admin records which cooperative confirmed a farmer
+  /// (only where the farmer agreed to cooperative confirmation, C5).
+  Future<void> setCooperative(String uid, String? cooperativeId) {
+    return _col.doc(uid).update({'cooperativeId': cooperativeId});
+  }
+
   /// Researcher-admin changes a profile's verification level (Table 3.4).
   Future<void> setVerificationLevel(String uid, int level) {
     return _col.doc(uid).update({'verificationLevel': level});

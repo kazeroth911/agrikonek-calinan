@@ -6,7 +6,9 @@ import 'package:geolocator/geolocator.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/validators.dart';
 import '../../../models/profile.dart';
+import '../../auth/providers/auth_providers.dart';
 import '../providers/profiling_providers.dart';
+import 'cooperatives_screen.dart';
 import '../../../core/l10n/app_language.dart';
 
 /// The researcher's profile-preparation form (paper §3.5.4). Captures
@@ -45,6 +47,9 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
   /// confirmed membership. Together these make verification level 2.
   bool _cooperativeConsent = false;
   bool _cooperativeConfirmed = false;
+
+  /// The farmer's cooperative, saved only with consent C5.
+  String? _cooperativeId;
   GeoPoint? _farmLocation;
   bool _busy = false;
 
@@ -102,6 +107,12 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
       setState(() => _error = 'Please select a barangay.');
       return;
     }
+    if (_cooperativeConfirmed && _cooperativeId == null) {
+      setState(() => _error =
+          'Choose the cooperative that confirmed membership, or untick the '
+          'confirmation.');
+      return;
+    }
     if (!_consentGiven) {
       setState(() => _error =
           'Consent to participate and to account registration (C8) must be '
@@ -134,6 +145,7 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
             ? null
             : _dataPlanController.text.trim(),
         consentGiven: _consentGiven,
+        cooperativeId: _cooperativeConsent ? _cooperativeId : null,
       );
 
       final result =
@@ -347,10 +359,43 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
                 value: _cooperativeConsent,
                 onChanged: (v) => setState(() {
                   _cooperativeConsent = v ?? false;
-                  if (!_cooperativeConsent) _cooperativeConfirmed = false;
+                  if (!_cooperativeConsent) {
+                    _cooperativeConfirmed = false;
+                    _cooperativeId = null;
+                  }
                 }),
               ),
-              if (_cooperativeConsent)
+              if (_cooperativeConsent) ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _cooperativeId,
+                        decoration: const InputDecoration(
+                            labelText: 'Cooperative or association'),
+                        items: [
+                          for (final c
+                              in ref.watch(cooperativesProvider).valueOrNull ??
+                                  const [])
+                            DropdownMenuItem(
+                                value: c.cooperativeId, child: Text(c.name)),
+                        ],
+                        onChanged: (v) => setState(() => _cooperativeId = v),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Add a cooperative',
+                      icon: const Icon(Icons.add_business_outlined),
+                      onPressed: () async {
+                        final id = await showAddCooperativeDialog(context, ref,
+                            barangay: _barangay);
+                        if (id != null && mounted) {
+                          setState(() => _cooperativeId = id);
+                        }
+                      },
+                    ),
+                  ],
+                ),
                 CheckboxListTile(
                   contentPadding: EdgeInsets.zero,
                   controlAffinity: ListTileControlAffinity.leading,
@@ -361,6 +406,7 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
                   onChanged: (v) =>
                       setState(() => _cooperativeConfirmed = v ?? false),
                 ),
+              ],
               const SizedBox(height: 16),
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,

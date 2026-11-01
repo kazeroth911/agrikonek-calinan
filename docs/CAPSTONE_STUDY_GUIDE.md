@@ -116,7 +116,7 @@ Table 2 should be cited in the framework paragraph: **“As summarized in Table 
 |---|---|---|
 | Flutter/Dart | Android user interface and business models | Builds screens, validates forms, and compiles the application. |
 | Riverpod | Providers, streams, loading/error states, controllers | Keeps screens updated when authentication or Firestore data change. |
-| Firebase Authentication | Email/password sign-in; phone OTP code path switched off for the pilot *(updated 23 Oct)* | Confirms identity and supplies the UID used for ownership checks. |
+| Firebase Authentication | Email/password for researcher-made accounts; phone verification for farmers, who then claim their prepared profile *(updated 1 Nov)* | Confirms identity and supplies the UID used for ownership checks. |
 | Cloud Firestore | Profiles, listings, offers, barter proposals, notifications | Stores structured records and sends live updates to subscribed screens. |
 | Cloud Storage | Profile and listing photos | Stores image files and returns URLs saved in Firestore records. |
 | Geolocator | Optional farm coordinates and display-only distance | Requests permission, reads coordinates, and calculates straight-line distance. |
@@ -388,7 +388,7 @@ Table 6 should be introduced in the discussion: **“Table 6 distinguishes demon
 | Feature | Evidence-based status | Discussion |
 |---|---|---|
 | Email/password sign-in | Implemented | Error messages are shown in plain English or Cebuano, following the language picked on the sign-in screen or in Settings. |
-| Phone OTP | Switched off for the pilot *(updated 23 Oct)* | Researcher-made accounts use email; SMS sign-in would create a separate, empty account until phone numbers are linked in the separately consented account-claiming phase. |
+| Phone sign-in and profile claiming | Implemented without a Cloud Function: the security rules check the verified number, and the claim copies the prepared profile in one batch *(updated 1 Nov)* | Real SMS may need the Blaze plan; Firebase test phone numbers work on Spark. |
 | Researcher-led profiling | Implemented | Captures roles, products, barter preference, device/data plan, consent, optional GPS/photos. |
 | Role routing | Implemented | Admins and non-admin users receive different home interfaces. |
 | Marketplace feed | Implemented | Live newest-first feed, closed-item filtering, category chips, and keyword search. |

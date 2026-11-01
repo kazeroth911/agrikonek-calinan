@@ -47,6 +47,16 @@ class ListingMapPreview extends StatelessWidget {
                   urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                   // Required by the OpenStreetMap tile usage policy.
                   userAgentPackageName: 'com.agrikonek.agrikonek_calinan',
+                  // Tiles already seen are kept on the phone (Table 3.2:
+                  // "tiles cached"), so reopening a listing costs no data.
+                  // Capped well below the 1 GB default for low-storage
+                  // phones. Not a full offline map.
+                  tileProvider: NetworkTileProvider(
+                    cachingProvider:
+                        BuiltInMapCachingProvider.getOrCreateInstance(
+                      maxCacheSize: 100000000, // about 100 MB
+                    ),
+                  ),
                 ),
                 CircleLayer(
                   circles: [

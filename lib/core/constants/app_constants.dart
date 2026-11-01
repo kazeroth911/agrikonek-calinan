@@ -12,19 +12,19 @@ class AppConstants {
   static const colNotifications = 'notifications';
   static const colDeviceTokens = 'deviceTokens';
   static const colAnnouncements = 'announcements';
+  static const colCooperatives = 'cooperatives';
 
   /// IDs of hidden profiles. Readable by every signed-in user so the app
   /// can filter the marketplace, while the hidden profiles themselves
   /// are readable only by their owner and admins.
   static const colHiddenProfiles = 'hiddenProfiles';
 
-  /// SMS-code sign-in. Off for the pilot: researcher-made accounts use
-  /// email and password, and an SMS sign-in would create a separate,
-  /// empty account. Turn on only after farmers' phone numbers are linked
-  /// to their accounts (the separately consented account-claiming phase),
-  /// by building with --dart-define=ENABLE_OTP=true.
+  /// Phone sign-in with profile claiming (paper §3.5.4). On by default:
+  /// a phone-verified account takes over the researcher-prepared profile
+  /// with the same number. Build with --dart-define=ENABLE_OTP=false to
+  /// hide it again (for example, while only email accounts are tested).
   static const enableOtpSignIn =
-      bool.fromEnvironment('ENABLE_OTP', defaultValue: false);
+      bool.fromEnvironment('ENABLE_OTP', defaultValue: true);
 
   /// Shown wherever a hidden profile would otherwise appear.
   static const profileUnavailable = 'This profile is unavailable.';

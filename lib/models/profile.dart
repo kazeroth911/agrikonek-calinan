@@ -25,6 +25,9 @@ class Profile {
     this.consentUrl,
     this.hidden = false,
     this.verificationLevel = 0,
+    this.cooperativeId,
+    this.claimedBy,
+    this.claimedFrom,
     this.createdAt,
     this.updatedAt,
   });
@@ -65,6 +68,21 @@ class Profile {
   /// changing it.
   final int verificationLevel;
 
+  /// The cooperative or association that confirmed membership. Saved only
+  /// when the farmer agreed to cooperative confirmation (consent item C5).
+  /// Set by researcher-admins; owners cannot change it.
+  final String? cooperativeId;
+
+  /// Claim status (paper §3.5.4). On a researcher-prepared profile,
+  /// [claimedBy] is the phone-verified account that took it over; on that
+  /// account's own profile, [claimedFrom] is the prepared profile it was
+  /// copied from. Both are written only by the claim, never by toMap.
+  final String? claimedBy;
+  final String? claimedFrom;
+
+  /// A prepared profile that has moved to a phone sign-in.
+  bool get isClaimed => claimedBy != null;
+
   static const levelVisited = 1;
   static const levelCooperativeConfirmed = 2;
 
@@ -98,6 +116,7 @@ class Profile {
     List<String>? photoUrls,
     bool? consentGiven,
     String? consentUrl,
+    String? cooperativeId,
   }) {
     return Profile(
       userId: userId,
@@ -119,6 +138,9 @@ class Profile {
       consentUrl: consentUrl ?? this.consentUrl,
       hidden: hidden,
       verificationLevel: verificationLevel,
+      cooperativeId: cooperativeId ?? this.cooperativeId,
+      claimedBy: claimedBy,
+      claimedFrom: claimedFrom,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
@@ -144,6 +166,7 @@ class Profile {
       'consentGiven': consentGiven,
       'consentUrl': consentUrl,
       'verificationLevel': verificationLevel,
+      'cooperativeId': cooperativeId,
       'createdAt': createdAt == null
           ? FieldValue.serverTimestamp()
           : Timestamp.fromDate(createdAt!),
@@ -172,6 +195,9 @@ class Profile {
       consentUrl: map['consentUrl'] as String?,
       hidden: (map['hidden'] ?? false) == true,
       verificationLevel: _levelFromMap(map['verificationLevel']),
+      cooperativeId: map['cooperativeId'] as String?,
+      claimedBy: map['claimedBy'] as String?,
+      claimedFrom: map['claimedFrom'] as String?,
       createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
     );

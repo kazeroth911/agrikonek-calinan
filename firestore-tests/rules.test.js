@@ -29,6 +29,8 @@ const {
   serverTimestamp,
   arrayUnion,
   Timestamp,
+  writeBatch,
+  limit,
 } = require("firebase/firestore");
 
 let env;
@@ -479,5 +481,100 @@ describe("push tokens and their language", () => {
   it("nobody can save a token under someone else's account", async () => {
     await assertFails(setDoc(doc(db(OTHER), "deviceTokens", BUYER, "tokens", "t5"),
       token({language: "en"})));
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe("profile claiming by phone (paper 3.5.4)", () => {
+  const PHONE = "+639171112222";
+  const PREP = "prep1";
+  const FARMER = "phoneUser1";
+  const phoneDb = (uid, phone) =>
+    env.authenticatedContext(uid, {phone_number: phone}).firestore();
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const d = ctx.firestore();
+      await setDoc(doc(d, "profiles", PREP), {
+        fullName: "Carla", barangay: "Wangan", roles: {seller: true, admin: false},
+        phone: PHONE, verificationLevel: 1, consentGiven: true,
+        hidden: true, hiddenAt: Timestamp.now(), createdAt: Timestamp.now(),
+      });
+      await setDoc(doc(d, "hiddenProfiles", PREP), {hiddenAt: Timestamp.now(), hiddenBy: ADMIN});
+    });
+  });
+
+  async function claimBatch(db, uid, change = {}) {
+    const snap = await getDoc(doc(db, "profiles", PREP));
+    const batch = writeBatch(db);
+    batch.set(doc(db, "profiles", uid),
+      {...snap.data(), ...change, claimedFrom: PREP, claimedAt: serverTimestamp()});
+    batch.update(doc(db, "profiles", PREP), {claimedBy: uid, claimedAt: serverTimestamp()});
+    batch.set(doc(db, "hiddenProfiles", uid), {hiddenAt: serverTimestamp(), hiddenBy: uid});
+    return batch.commit();
+  }
+
+  it("the verified phone owner can find their hidden prepared profile", async () => {
+    const db = phoneDb(FARMER, PHONE);
+    await assertSucceeds(getDocs(query(collection(db, "profiles"),
+      where("phone", "==", PHONE), limit(10))));
+    await assertSucceeds(getDoc(doc(db, "profiles", PREP)));
+  });
+
+  it("someone with another number cannot read it", async () => {
+    await assertFails(getDoc(doc(phoneDb("x1", "+639990000000"), "profiles", PREP)));
+    await assertFails(getDoc(doc(db(OTHER), "profiles", PREP)));
+  });
+
+  it("the verified phone owner can claim it", async () => {
+    await assertSucceeds(claimBatch(phoneDb(FARMER, PHONE), FARMER));
+  });
+
+  it("a claim cannot change the prepared details", async () => {
+    await assertFails(claimBatch(phoneDb(FARMER, PHONE), FARMER, {verificationLevel: 2}));
+    await assertFails(claimBatch(phoneDb(FARMER, PHONE), FARMER, {roles: {seller: true, admin: true}}));
+  });
+
+  it("the copy and the claimed mark must be written together", async () => {
+    const db = phoneDb(FARMER, PHONE);
+    const snap = await getDoc(doc(db, "profiles", PREP));
+    await assertFails(setDoc(doc(db, "profiles", FARMER),
+      {...snap.data(), claimedFrom: PREP, claimedAt: serverTimestamp()}));
+    await assertFails(updateDoc(doc(db, "profiles", PREP),
+      {claimedBy: FARMER, claimedAt: serverTimestamp()}));
+  });
+
+  it("a profile can be claimed only once", async () => {
+    await assertSucceeds(claimBatch(phoneDb(FARMER, PHONE), FARMER));
+    await assertFails(claimBatch(phoneDb("phoneUser2", PHONE), "phoneUser2"));
+  });
+
+  it("an account without a verified phone cannot claim", async () => {
+    await assertFails(claimBatch(db(OTHER), OTHER));
+  });
+
+  it("owners cannot change their phone, cooperative or claim fields", async () => {
+    await assertFails(updateDoc(doc(db(BUYER), "profiles", BUYER), {phone: PHONE}));
+    await assertFails(updateDoc(doc(db(BUYER), "profiles", BUYER), {cooperativeId: "coop1"}));
+    await assertFails(updateDoc(doc(db(BUYER), "profiles", BUYER), {claimedBy: "x"}));
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe("cooperatives (Figure 3.4)", () => {
+  it("a researcher-admin can add and read cooperatives", async () => {
+    await assertSucceeds(setDoc(doc(db(ADMIN), "cooperatives", "coop1"),
+      {name: "Calinan Farmers Cooperative", barangay: "Wangan", createdAt: serverTimestamp()}));
+    await assertSucceeds(getDoc(doc(db(ADMIN), "cooperatives", "coop1")));
+  });
+
+  it("farmers cannot read or add cooperatives", async () => {
+    await assertFails(getDoc(doc(db(BUYER), "cooperatives", "coop1")));
+    await assertFails(setDoc(doc(db(BUYER), "cooperatives", "coop2"),
+      {name: "X", barangay: null, createdAt: serverTimestamp()}));
+  });
+
+  it("only a researcher-admin can record a profile's cooperative", async () => {
+    await assertSucceeds(updateDoc(doc(db(ADMIN), "profiles", SELLER), {cooperativeId: "coop1"}));
   });
 });

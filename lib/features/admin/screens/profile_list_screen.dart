@@ -47,6 +47,49 @@ class ProfileListScreen extends ConsumerWidget {
     }
   }
 
+  static const _pickCooperative = -1;
+  static const _noCooperative = '';
+
+  /// Researcher-admin records which cooperative confirmed this farmer.
+  /// Asked only for farmers who agreed to cooperative confirmation (C5);
+  /// the cooperative is never told who declined.
+  Future<void> _setCooperative(
+      BuildContext context, WidgetRef ref, Profile p) async {
+    final cooperatives = ref.read(cooperativesProvider).valueOrNull ?? const [];
+    final picked = await showDialog<String>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text('Cooperative: ${p.fullName}'),
+        children: [
+          if (cooperatives.isEmpty)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(24, 8, 24, 8),
+              child: Text('No cooperatives yet. Add one under '
+                  'Researcher home → Cooperatives.'),
+            ),
+          for (final c in cooperatives)
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(context).pop(c.cooperativeId),
+              child: Text(c.barangay == null ? c.name : '${c.name} (${c.barangay})'),
+            ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.of(context).pop(_noCooperative),
+            child: const Text('None / remove'),
+          ),
+        ],
+      ),
+    );
+    if (picked == null || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(profileRepositoryProvider).setCooperative(
+          p.userId, picked == _noCooperative ? null : picked);
+    } catch (error) {
+      messenger.showSnackBar(
+          SnackBar(content: Text('Could not record the cooperative: $error')));
+    }
+  }
+
   /// Researcher-admin records the verification level (Table 3.4).
   Future<void> _setLevel(BuildContext context, WidgetRef ref, Profile p) async {
     final level = await showDialog<int>(
@@ -64,12 +107,17 @@ class ProfileListScreen extends ConsumerWidget {
             child: const Text('Level 2: Cooperative-confirmed '
                 '(only with consent C5 and the cooperative\'s confirmation)'),
           ),
+          const Divider(),
+          SimpleDialogOption(
+            onPressed: () => Navigator.of(context).pop(_pickCooperative),
+            child: const Text('Record the cooperative (only with consent C5)'),
+          ),
         ],
       ),
     );
-    if (level == null || level == p.verificationLevel || !context.mounted) {
-      return;
-    }
+    if (!context.mounted) return;
+    if (level == _pickCooperative) return _setCooperative(context, ref, p);
+    if (level == null || level == p.verificationLevel) return;
     final messenger = ScaffoldMessenger.of(context);
     try {
       await ref.read(profileRepositoryProvider).setVerificationLevel(p.userId, level);
@@ -82,6 +130,7 @@ class ProfileListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profilesAsync = ref.watch(allProfilesProvider);
+    final cooperativeNames = ref.watch(cooperativeNamesProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -108,6 +157,9 @@ class ProfileListScreen extends ConsumerWidget {
                 subtitle: Text(
                     '${p.barangay} • ${p.roles.join(", ")}\n'
                     '${p.isAdmin ? 'Researcher-admin' : (p.verificationLabelFor(context.language) ?? 'Verification level not recorded')}'
+                    '${p.cooperativeId == null ? '' : '\nCooperative: ${cooperativeNames[p.cooperativeId] ?? 'unknown'}'}'
+                    '${p.isClaimed ? '\nMoved to a phone sign-in' : ''}'
+                    '${p.claimedFrom != null ? '\nSigns in by phone (claimed)' : ''}'
                     '${p.products.isEmpty ? '' : '\n${p.products.join(", ")}'}'),
                 isThreeLine: true,
                 onTap: p.isAdmin ? null : () => _setLevel(context, ref, p),

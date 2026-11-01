@@ -83,6 +83,7 @@ class ProfilingController {
         dataPlan: draft.dataPlan,
         consentGiven: draft.consentGiven,
         verificationLevel: verificationLevel,
+        cooperativeId: draft.cooperativeId,
       );
       await repo.createPreparedProfile(profile, byUid: adminUid);
     } catch (_) {

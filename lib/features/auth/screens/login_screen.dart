@@ -11,7 +11,7 @@ import 'otp_screen.dart';
 import '../../../core/l10n/app_language.dart';
 
 /// Screen 1 of the wireframes: email/password sign-in with an
-/// "Use OTP instead" path. No self-registration by design —
+/// "Use phone number instead" path. No self-registration by design —
 /// accounts are seeded by the researcher (paper §1.4).
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -170,8 +170,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   : () => Navigator.of(context).push(
                                       MaterialPageRoute(
                                           builder: (_) => const OtpScreen())),
-                              child: Text(context.tr(
-                                  'Use OTP instead', 'Gamita ang OTP')),
+                              child: Text(context.tr('Use phone number instead',
+                                  'Gamita ang numero sa cellphone')),
                             ),
                           ],
                         ],
