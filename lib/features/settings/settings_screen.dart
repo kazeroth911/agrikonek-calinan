@@ -55,7 +55,10 @@ class SettingsScreen extends ConsumerWidget {
 
 /// Small language switch for screens shown before sign-in.
 class LanguageMenuButton extends ConsumerWidget {
-  const LanguageMenuButton({super.key});
+  const LanguageMenuButton({super.key, this.color});
+
+  /// Icon colour, e.g. white on the green sign-in header.
+  final Color? color;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -63,6 +66,7 @@ class LanguageMenuButton extends ConsumerWidget {
     return PopupMenuButton<AppLanguage>(
       tooltip: context.tr('Language', 'Pinulongan'),
       icon: const Icon(Icons.translate),
+      iconColor: color,
       initialValue: current,
       onSelected: (value) => ref.read(languageProvider.notifier).set(value),
       itemBuilder: (_) => [

@@ -7,6 +7,7 @@ import '../../learn/learn_screen.dart';
 import '../../listings/screens/my_listings_screen.dart';
 import '../../settings/settings_screen.dart';
 import '../widgets/verification_badge.dart';
+import '../../../core/widgets/brand.dart';
 import '../../../core/l10n/app_language.dart';
 
 /// The signed-in farmer's own profile, with the option to hide it from
@@ -96,22 +97,70 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Text(profile.fullName, style: theme.textTheme.headlineSmall),
-              const SizedBox(height: 4),
-              Text(profile.barangay),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: HillsBackdrop(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 36),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 32,
+                          backgroundColor: Colors.white,
+                          foregroundColor: theme.colorScheme.primary,
+                          child: Text(
+                            profile.fullName.isEmpty
+                                ? '?'
+                                : profile.fullName[0].toUpperCase(),
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                                color: theme.colorScheme.primary),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                profile.fullName,
+                                style: theme.textTheme.titleLarge
+                                    ?.copyWith(color: Colors.white),
+                              ),
+                              Text(
+                                '${profile.barangay}, Calinan',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: Colors.white.withValues(alpha: 0.85)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
               if (profile.verificationLevel > 0) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: VerificationBadge(level: profile.verificationLevel),
                 ),
               ],
               if (profile.products.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(profile.products.join(', '),
-                    style: theme.textTheme.bodySmall),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final product in profile.products)
+                      Chip(
+                        avatar: const Icon(Icons.eco_outlined),
+                        label: Text(product),
+                      ),
+                  ],
+                ),
               ],
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               Card(
                 child: ListTile(
                   leading: const Icon(Icons.inventory_2_outlined),

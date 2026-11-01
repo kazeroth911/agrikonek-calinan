@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../core/l10n/app_language.dart';
+import '../../../core/widgets/empty_state.dart';
 
 final _pesoFormat = NumberFormat('#,##0.##');
 
@@ -113,21 +114,8 @@ class NegotiationListMessage extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 56),
-            const SizedBox(height: 16),
-            Text(text, textAlign: TextAlign.center),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      EmptyState(icon: icon, text: text, isError: icon == Icons.cloud_off);
 }
 
 final negotiationDateLabel = DateFormat('MMM d, h:mm a');

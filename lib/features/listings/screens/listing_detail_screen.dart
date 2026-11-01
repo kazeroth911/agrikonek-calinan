@@ -23,6 +23,8 @@ import '../widgets/listing_card.dart' show listingPriceLabel;
 import '../widgets/listing_map_preview.dart';
 import 'post_listing_screen.dart';
 import '../../../core/l10n/app_language.dart';
+import '../../../core/widgets/category_style.dart';
+import '../../../core/widgets/empty_state.dart';
 
 /// Full listing view: photo gallery, price, farmer info with barangay,
 /// straight-line distance preview (display only, per panel decision),
@@ -41,19 +43,18 @@ class ListingDetailScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(context.tr('Listing', 'Baligya'))),
       body: listingAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text(
-                '${context.tr('Could not load this listing.', 'Wala ma-load kini nga baligya.')}\n$e',
-                textAlign: TextAlign.center),
-          ),
+        error: (e, _) => EmptyState(
+          icon: Icons.cloud_off,
+          isError: true,
+          text:
+              '${context.tr('Could not load this listing.', 'Wala ma-load kini nga baligya.')}\n$e',
         ),
         data: (listing) {
           if (listing == null) {
-            return Center(
-                child: Text(context.tr('This listing has been removed.',
-                    'Wala na kini nga baligya.')));
+            return EmptyState(
+                icon: Icons.inventory_2_outlined,
+                text: context.tr('This listing has been removed.',
+                    'Wala na kini nga baligya.'));
           }
           return _ListingDetailBody(listing: listing);
         },
@@ -88,12 +89,22 @@ class _ListingDetailBody extends ConsumerWidget {
       );
     }
 
+    final category = CategoryStyle.of(listing.category);
+    final cebuano = context.language == AppLanguage.cebuano;
+
     return ListView(
-      padding: const EdgeInsets.only(bottom: 32),
+      padding: EdgeInsets.zero,
       children: [
-        _PhotoGallery(urls: listing.photoUrls),
-        Padding(
-          padding: const EdgeInsets.all(16),
+        _PhotoGallery(urls: listing.photoUrls, category: listing.category),
+        Transform.translate(
+          offset: const Offset(0, -24),
+          child: Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -104,43 +115,78 @@ class _ListingDetailBody extends ConsumerWidget {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.errorContainer,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(context.tr('This listing is closed.',
-                      'Sirado na kini nga baligya.')),
+                  child: Row(
+                    children: [
+                      Icon(Icons.lock_outline,
+                          color: theme.colorScheme.onErrorContainer),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(context.tr('This listing is closed.',
+                            'Sirado na kini nga baligya.')),
+                      ),
+                    ],
+                  ),
                 ),
               Text(listing.title, style: theme.textTheme.headlineSmall),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               Text(
                 listingPriceLabel(listing, context.language),
-                style: theme.textTheme.titleLarge?.copyWith(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w700,
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  color: listing.price == null
+                      ? theme.colorScheme.tertiary
+                      : theme.colorScheme.primary,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
+                runSpacing: 8,
                 children: [
-                  Chip(label: Text(listing.category)),
+                  Chip(
+                    avatar: Icon(category.icon, color: category.foreground),
+                    label: Text(
+                        cebuano
+                            ? CategoryStyle.cebuanoName(listing.category)
+                            : listing.category,
+                        style: TextStyle(color: category.foreground)),
+                    backgroundColor: category.background,
+                    side: BorderSide.none,
+                  ),
                   if (forBarter)
                     Chip(
-                        label: Text(
-                            context.tr('Open to barter', 'Pwede i-baylo'))),
+                      avatar: Icon(Icons.swap_horiz,
+                          color: theme.colorScheme.onTertiaryContainer),
+                      label: Text(
+                          context.tr('Open to barter', 'Pwede i-baylo'),
+                          style: TextStyle(
+                              color: theme.colorScheme.onTertiaryContainer)),
+                      backgroundColor: theme.colorScheme.tertiaryContainer,
+                      side: BorderSide.none,
+                    ),
                 ],
               ),
               if (listing.availableFrom != null ||
                   listing.availableTo != null) ...[
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.event, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(_availabilityLabel(context.language),
-                          style: theme.textTheme.bodyMedium),
-                    ),
-                  ],
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.event_available,
+                          size: 22, color: theme.colorScheme.primary),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(_availabilityLabel(context.language),
+                            style: theme.textTheme.bodyMedium),
+                      ),
+                    ],
+                  ),
                 ),
               ],
               if (listing.description.isNotEmpty) ...[
@@ -148,9 +194,12 @@ class _ListingDetailBody extends ConsumerWidget {
                 Text(context.tr('Details', 'Detalye'),
                     style: theme.textTheme.titleMedium),
                 const SizedBox(height: 4),
-                Text(listing.description),
+                Text(listing.description, style: theme.textTheme.bodyLarge),
               ],
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
+              Text(context.tr('Farmer', 'Mag-uuma'),
+                  style: theme.textTheme.titleMedium),
+              const SizedBox(height: 4),
               _FarmerCard(listing: listing),
               if (ref.watch(ownerProfileProvider(listing.ownerId)).valueOrNull
                   case final owner? when owner.farmLocation != null) ...[
@@ -166,6 +215,7 @@ class _ListingDetailBody extends ConsumerWidget {
                     listing: listing, forSale: forSale, forBarter: forBarter),
             ],
           ),
+        ),
         ),
       ],
     );
@@ -190,21 +240,21 @@ class _ListingDetailBody extends ConsumerWidget {
 /// Swipeable gallery; falls back to a placeholder banner when the
 /// listing has no photos (e.g. posted while Storage was unavailable).
 class _PhotoGallery extends StatelessWidget {
-  const _PhotoGallery({required this.urls});
+  const _PhotoGallery({required this.urls, required this.category});
 
   final List<String> urls;
+  final String category;
+
+  static const _height = 260.0;
 
   @override
   Widget build(BuildContext context) {
-    final placeholder = Container(
-      height: 220,
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      child: const Center(child: Icon(Icons.agriculture, size: 72)),
-    );
+    final placeholder = ProducePlaceholder(
+        category: category, height: _height, iconSize: 96);
     if (urls.isEmpty) return placeholder;
 
     return SizedBox(
-      height: 220,
+      height: _height,
       child: PageView.builder(
         itemCount: urls.length,
         itemBuilder: (context, i) => Image.network(
@@ -246,12 +296,15 @@ class _FarmerCard extends ConsumerWidget {
         child: Row(
           children: [
             CircleAvatar(
-              radius: 26,
+              radius: 28,
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
               child: Text(
                 listing.ownerName.isEmpty
                     ? '?'
                     : listing.ownerName[0].toUpperCase(),
-                style: theme.textTheme.titleLarge,
+                style: theme.textTheme.titleLarge
+                    ?.copyWith(color: theme.colorScheme.onPrimary),
               ),
             ),
             const SizedBox(width: 16),
@@ -267,9 +320,12 @@ class _FarmerCard extends ConsumerWidget {
                   ],
                   Row(
                     children: [
-                      const Icon(Icons.place, size: 16),
+                      Icon(Icons.place_outlined,
+                          size: 16, color: theme.colorScheme.onSurfaceVariant),
                       const SizedBox(width: 4),
-                      Flexible(child: Text(listing.ownerBarangay)),
+                      Flexible(
+                          child: Text('${listing.ownerBarangay}, Calinan',
+                              style: theme.textTheme.bodyMedium)),
                     ],
                   ),
                   distanceAsync.when(

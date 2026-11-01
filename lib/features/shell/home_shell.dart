@@ -77,18 +77,18 @@ class _FarmerShellState extends ConsumerState<_FarmerShell> {
             icon: Badge(
               isLabelVisible: offerCount > 0,
               label: Text('$offerCount'),
-              child: const Icon(Icons.gavel_outlined),
+              child: const Icon(Icons.sell_outlined),
             ),
-            selectedIcon: const Icon(Icons.gavel),
+            selectedIcon: const Icon(Icons.sell),
             label: context.tr('Bids', 'Tanyag'),
           ),
           NavigationDestination(
             icon: Badge(
               isLabelVisible: barterCount > 0,
               label: Text('$barterCount'),
-              child: const Icon(Icons.swap_horiz_outlined),
+              child: const Icon(Icons.handshake_outlined),
             ),
-            selectedIcon: const Icon(Icons.swap_horiz),
+            selectedIcon: const Icon(Icons.handshake),
             label: context.tr('Barter', 'Baylo'),
           ),
           NavigationDestination(

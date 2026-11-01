@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/l10n/app_language.dart';
 import 'core/theme/app_theme.dart';
+import 'core/widgets/brand.dart';
 import 'features/auth/providers/auth_providers.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/notifications/screens/notifications_screen.dart';
@@ -47,7 +48,20 @@ class _SplashScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Scaffold(
       body: Center(
-        child: CircularProgressIndicator(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AgriKonekMark(size: 96),
+            SizedBox(height: 20),
+            AgriKonekWordmark(fontSize: 30),
+            SizedBox(height: 32),
+            SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(strokeWidth: 3),
+            ),
+          ],
+        ),
       ),
     );
   }

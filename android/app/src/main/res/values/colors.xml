@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- AgriKonek rice-paper background, same as AppTheme.ricePaper -->
+    <color name="agrikonek_background">#FBF8F1</color>
+</resources>
