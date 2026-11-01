@@ -37,6 +37,13 @@ class NewFarmerAccount {
 class AdminAccountService {
   static const _secondaryAppName = 'agrikonek-admin-secondary';
 
+  /// Set (in main.dart or a test) when the app runs against the Firebase
+  /// Emulator Suite, so farmer logins are also created in the emulator,
+  /// never in the real project.
+  static String? authEmulatorHost;
+  static int authEmulatorPort = 9099;
+  static bool _secondaryOnEmulator = false;
+
   Future<FirebaseApp> _secondaryApp() async {
     try {
       return Firebase.app(_secondaryAppName);
@@ -58,6 +65,11 @@ class AdminAccountService {
   }) async {
     final app = await _secondaryApp();
     final secondaryAuth = FirebaseAuth.instanceFor(app: app);
+    final host = authEmulatorHost;
+    if (host != null && !_secondaryOnEmulator) {
+      await secondaryAuth.useAuthEmulator(host, authEmulatorPort);
+      _secondaryOnEmulator = true;
+    }
     try {
       final credential = await secondaryAuth.createUserWithEmailAndPassword(
         email: email.trim(),

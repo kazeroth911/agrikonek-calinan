@@ -37,27 +37,29 @@ class AppConstants {
   static const roleAdmin = 'admin';
   static const allRoles = [roleSeller, roleBuyer, roleTrader, roleAdmin];
 
-  /// Calinan District barangays for the profiling form dropdown.
-  /// Verify/extend this list during barangay coordination.
+  /// Calinan District barangays for the profiling form dropdown: the 19
+  /// listed in the Farmer Profile Sheet (paper §3.7 and Appendix B,
+  /// item 3), in the same order. Keep the two lists identical.
   static const calinanBarangays = <String>[
+    'Biao Joaquin',
     'Calinan Poblacion',
-    'Wangan',
-    'Riverside',
-    'Lamanan',
-    'Tamayong',
     'Cawayan',
     'Dacudao',
     'Dalagdag',
     'Dominga',
     'Inayangan',
     'Lacson',
+    'Lamanan',
+    'Lampianao',
     'Megkawayan',
     'Pangyan',
+    'Riverside',
     'Saloy',
     'Sirib',
     'Subasta',
     'Talomo River',
-    'Wines',
+    'Tamayong',
+    'Wangan',
   ];
 
   /// Listing categories for the marketplace feed (Sprint 2).

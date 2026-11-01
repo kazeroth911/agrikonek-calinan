@@ -268,6 +268,8 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
+                // Long labels shrink with '...' instead of overflowing.
+                isExpanded: true,
                 initialValue: _category,
                 decoration: InputDecoration(
                     labelText: context.tr('Category *', 'Kategorya *')),
@@ -307,6 +309,8 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
                   Expanded(
                     flex: 2,
                     child: DropdownButtonFormField<String>(
+                      // Long labels shrink with '...' instead of overflowing.
+                      isExpanded: true,
                       initialValue: _unit,
                       decoration: InputDecoration(
                           labelText: context.tr('Per unit', 'Matag')),

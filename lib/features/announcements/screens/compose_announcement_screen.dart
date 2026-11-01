@@ -165,6 +165,8 @@ class _ComposeAnnouncementScreenState
             const SizedBox(height: 12),
             if (_audience == AnnouncementAudience.barangay)
               DropdownButtonFormField<String>(
+                // Long labels shrink with '...' instead of overflowing.
+                isExpanded: true,
                 initialValue: _barangay,
                 decoration: const InputDecoration(
                   labelText: 'Barangay',

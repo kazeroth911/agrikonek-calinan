@@ -218,6 +218,8 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
+                // Long labels shrink with '...' instead of overflowing.
+                isExpanded: true,
                 initialValue: _barangay,
                 decoration:
                     const InputDecoration(labelText: 'Barangay *'),
@@ -370,6 +372,8 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
+                        // Long labels shrink with '...' instead of overflowing.
+                        isExpanded: true,
                         initialValue: _cooperativeId,
                         decoration: const InputDecoration(
                             labelText: 'Cooperative or association'),

@@ -176,7 +176,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   reverse: true,
                   padding: const EdgeInsets.all(12),
                   itemCount: messages.length,
-                  itemBuilder: (context, index) => _Bubble(
+                  itemBuilder: (context, index) => MessageBubble(
                     message: messages[index],
                     mine: messages[index].senderId == uid,
                   ),
@@ -224,8 +224,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 }
 
-class _Bubble extends StatelessWidget {
-  const _Bubble({required this.message, required this.mine});
+/// One chat message: mine on the right in green, theirs on the left.
+class MessageBubble extends StatelessWidget {
+  const MessageBubble({super.key, required this.message, required this.mine});
 
   final Message message;
   final bool mine;

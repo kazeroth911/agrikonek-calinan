@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../core/constants/app_constants.dart';
@@ -22,6 +24,51 @@ class ListingRepository {
   /// Newest-first marketplace feed. Closed and expired listings are
   /// filtered out here; category filtering happens in the provider layer
   /// so one stream subscription serves every chip selection.
+  /// True while the feed is being served from the copy saved on the
+  /// phone (no connection yet, or offline), false once the server has
+  /// answered. Shares the feed's listener, so it costs no extra reads.
+  Stream<bool> watchFeedIsFromCache() {
+    return _col
+        .orderBy('createdAt', descending: true)
+        .limit(AppConstants.feedQueryLimit)
+        .snapshots(includeMetadataChanges: true)
+        .map((snap) => snap.metadata.isFromCache)
+        .distinct()
+        .transform(delayTrue(const Duration(seconds: 4)));
+  }
+
+  /// Passes "false" at once but "true" only if it lasts [delay], so the
+  /// short cache-first moment at every app start shows no offline notice.
+  static StreamTransformer<bool, bool> delayTrue(Duration delay) {
+    return StreamTransformer<bool, bool>((source, cancelOnError) {
+      Timer? timer;
+      late StreamSubscription<bool> sub;
+      final controller = StreamController<bool>(
+        onCancel: () {
+          timer?.cancel();
+          return sub.cancel();
+        },
+      );
+      sub = source.listen(
+        (value) {
+          timer?.cancel();
+          if (value) {
+            timer = Timer(delay, () => controller.add(true));
+          } else {
+            controller.add(false);
+          }
+        },
+        onError: controller.addError,
+        onDone: () {
+          timer?.cancel();
+          controller.close();
+        },
+        cancelOnError: cancelOnError,
+      );
+      return controller.stream.listen(null);
+    });
+  }
+
   Stream<List<Listing>> watchFeed() {
     return _col
         .orderBy('createdAt', descending: true)

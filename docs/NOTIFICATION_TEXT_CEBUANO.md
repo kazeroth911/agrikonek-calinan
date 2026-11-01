@@ -273,45 +273,46 @@ Not translated on purpose: the consent items C1 to C8 on the researcher's profil
 | S226 | listings/screens/marketplace_screen | Good afternoon | Maayong hapon | |
 | S227 | listings/screens/marketplace_screen | Good evening | Maayong gabii | |
 | S228 | listings/screens/marketplace_screen | What are you looking for today? | Unsa imong gipangita karon? | |
-| S229 | listings/screens/marketplace_screen | Fresh from Calinan farms | Bag-o gikan sa mga uma sa Calinan | |
-| S230 | listings/screens/marketplace_screen | $count ${count == 1 ? 'listing' : 'listings'} | $count ka baligya | |
-| S231 | listings/screens/marketplace_screen | Search durian, eggs, Wangan... | Pangitaa: durian, itlog, Wangan... | |
-| S232 | listings/screens/marketplace_screen | All | Tanan | |
-| S233 | listings/screens/my_listings_screen | Sold | Nabaligya | |
-| S234 | listings/screens/my_listings_screen | Expired | Lapas na | |
-| S235 | listings/screens/my_listings_screen | Active | Aktibo | |
-| S236 | listings/screens/my_listings_screen | Could not load your listings. | Wala ma-load ang imong mga baligya. | |
-| S237 | listings/screens/my_listings_screen | You have not posted anything yet. | Wala pa kay gi-post nga baligya. | |
-| S238 | listings/screens/my_listings_screen | Edit | Usba | |
-| S239 | listings/screens/post_listing_screen | Please select a category. | Pilia ang kategorya. | |
-| S240 | listings/screens/post_listing_screen | Enter a price, or turn on barter for a barter-only listing. | Butangi og presyo, o i-on ang baylo kung baylo lang. | |
-| S241 | listings/screens/post_listing_screen | Your profile is still loading. Try again. | Nag-load pa ang imong profile. Sulayi pag-usab. | |
-| S242 | listings/screens/post_listing_screen | Changes saved, but new photos could not be uploaded. | Na-save na, pero wala ma-upload ang bag-ong mga litrato. | |
-| S243 | listings/screens/post_listing_screen | Changes saved. | Na-save na. | |
-| S244 | listings/screens/post_listing_screen | Listing posted, but photos could not be uploaded. You can add them later. | Na-post na ang baligya, pero wala ma-upload ang mga litrato. Mahimo nimo kining idugang unya. | |
-| S245 | listings/screens/post_listing_screen | Listing posted! | Na-post na ang baligya! | |
-| S246 | listings/screens/post_listing_screen | Could not save changes | Wala na-save ang mga kausaban | |
-| S247 | listings/screens/post_listing_screen | Could not post listing | Wala na-post ang baligya | |
-| S248 | listings/screens/post_listing_screen | Post a Listing | Mag-post og Baligya | |
-| S249 | listings/screens/post_listing_screen | What are you selling? * | Unsa imong ibaligya? * | |
-| S250 | listings/screens/post_listing_screen | e.g. Durian (Puyat), native eggs | pananglitan: Durian (Puyat), itlog nga bisaya | |
-| S251 | listings/screens/post_listing_screen | Title is required | Kinahanglan ang titulo | |
-| S252 | listings/screens/post_listing_screen | Category * | Kategorya * | |
-| S253 | listings/screens/post_listing_screen | Price (₱) | Presyo (₱) | |
-| S254 | listings/screens/post_listing_screen | Leave blank if barter only | Ayaw butangi kung baylo lang | |
-| S255 | listings/screens/post_listing_screen | Enter a valid price | Butangi og saktong presyo | |
-| S256 | listings/screens/post_listing_screen | Per unit | Matag | |
-| S257 | listings/screens/post_listing_screen | Other farmers can propose a trade instead of cash | Ang ubang mag-uuma makatanyag og baylo imbes kwarta | |
-| S258 | listings/screens/post_listing_screen | Description (optional) | Paghulagway (opsyonal) | |
-| S259 | listings/screens/post_listing_screen | Quality, quantity available, pickup notes... | Kalidad, pila ang naa, asa kuhaon... | |
-| S260 | listings/screens/post_listing_screen | Availability (optional) | Kanus-a available (opsyonal) | |
-| S261 | listings/screens/post_listing_screen | From | Gikan | |
-| S262 | listings/screens/post_listing_screen | Until | Hangtod | |
-| S263 | listings/screens/post_listing_screen | Photos (up to ${AppConstants.maxListingPhotos}) | Mga litrato (hangtod ${AppConstants.maxListingPhotos}) | |
-| S264 | listings/screens/post_listing_screen | Camera | Kamera | |
-| S265 | listings/screens/post_listing_screen | SAVE CHANGES | I-SAVE | |
-| S266 | listings/screens/post_listing_screen | POST LISTING | I-POST | |
-| S267 | listings/widgets/listing_map_preview | Approximate area only | Gibanabana lang nga lugar | |
+| S229 | listings/screens/marketplace_screen | No connection. Showing listings saved on this phone. | Walay koneksyon. Gipakita ang mga baligya nga natipig sa cellphone. | |
+| S230 | listings/screens/marketplace_screen | Fresh from Calinan farms | Bag-o gikan sa mga uma sa Calinan | |
+| S231 | listings/screens/marketplace_screen | $count ${count == 1 ? 'listing' : 'listings'} | $count ka baligya | |
+| S232 | listings/screens/marketplace_screen | Search durian, eggs, Wangan... | Pangitaa: durian, itlog, Wangan... | |
+| S233 | listings/screens/marketplace_screen | All | Tanan | |
+| S234 | listings/screens/my_listings_screen | Sold | Nabaligya | |
+| S235 | listings/screens/my_listings_screen | Expired | Lapas na | |
+| S236 | listings/screens/my_listings_screen | Active | Aktibo | |
+| S237 | listings/screens/my_listings_screen | Could not load your listings. | Wala ma-load ang imong mga baligya. | |
+| S238 | listings/screens/my_listings_screen | You have not posted anything yet. | Wala pa kay gi-post nga baligya. | |
+| S239 | listings/screens/my_listings_screen | Edit | Usba | |
+| S240 | listings/screens/post_listing_screen | Please select a category. | Pilia ang kategorya. | |
+| S241 | listings/screens/post_listing_screen | Enter a price, or turn on barter for a barter-only listing. | Butangi og presyo, o i-on ang baylo kung baylo lang. | |
+| S242 | listings/screens/post_listing_screen | Your profile is still loading. Try again. | Nag-load pa ang imong profile. Sulayi pag-usab. | |
+| S243 | listings/screens/post_listing_screen | Changes saved, but new photos could not be uploaded. | Na-save na, pero wala ma-upload ang bag-ong mga litrato. | |
+| S244 | listings/screens/post_listing_screen | Changes saved. | Na-save na. | |
+| S245 | listings/screens/post_listing_screen | Listing posted, but photos could not be uploaded. You can add them later. | Na-post na ang baligya, pero wala ma-upload ang mga litrato. Mahimo nimo kining idugang unya. | |
+| S246 | listings/screens/post_listing_screen | Listing posted! | Na-post na ang baligya! | |
+| S247 | listings/screens/post_listing_screen | Could not save changes | Wala na-save ang mga kausaban | |
+| S248 | listings/screens/post_listing_screen | Could not post listing | Wala na-post ang baligya | |
+| S249 | listings/screens/post_listing_screen | Post a Listing | Mag-post og Baligya | |
+| S250 | listings/screens/post_listing_screen | What are you selling? * | Unsa imong ibaligya? * | |
+| S251 | listings/screens/post_listing_screen | e.g. Durian (Puyat), native eggs | pananglitan: Durian (Puyat), itlog nga bisaya | |
+| S252 | listings/screens/post_listing_screen | Title is required | Kinahanglan ang titulo | |
+| S253 | listings/screens/post_listing_screen | Category * | Kategorya * | |
+| S254 | listings/screens/post_listing_screen | Price (₱) | Presyo (₱) | |
+| S255 | listings/screens/post_listing_screen | Leave blank if barter only | Ayaw butangi kung baylo lang | |
+| S256 | listings/screens/post_listing_screen | Enter a valid price | Butangi og saktong presyo | |
+| S257 | listings/screens/post_listing_screen | Per unit | Matag | |
+| S258 | listings/screens/post_listing_screen | Other farmers can propose a trade instead of cash | Ang ubang mag-uuma makatanyag og baylo imbes kwarta | |
+| S259 | listings/screens/post_listing_screen | Description (optional) | Paghulagway (opsyonal) | |
+| S260 | listings/screens/post_listing_screen | Quality, quantity available, pickup notes... | Kalidad, pila ang naa, asa kuhaon... | |
+| S261 | listings/screens/post_listing_screen | Availability (optional) | Kanus-a available (opsyonal) | |
+| S262 | listings/screens/post_listing_screen | From | Gikan | |
+| S263 | listings/screens/post_listing_screen | Until | Hangtod | |
+| S264 | listings/screens/post_listing_screen | Photos (up to ${AppConstants.maxListingPhotos}) | Mga litrato (hangtod ${AppConstants.maxListingPhotos}) | |
+| S265 | listings/screens/post_listing_screen | Camera | Kamera | |
+| S266 | listings/screens/post_listing_screen | SAVE CHANGES | I-SAVE | |
+| S267 | listings/screens/post_listing_screen | POST LISTING | I-POST | |
+| S268 | listings/widgets/listing_map_preview | Approximate area only | Gibanabana lang nga lugar | |
 
 Category names (shown in Cebuano when Cebuano is chosen; stored in English):
 

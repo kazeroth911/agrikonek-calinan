@@ -208,65 +208,77 @@ class _ProposeBarterSheetState extends ConsumerState<ProposeBarterSheet> {
     );
   }
 
+  /// One item per block: the name on its own line, then quantity, unit
+  /// and the add/remove button. Fits a 360-wide phone without squeezing.
   List<Widget> _itemRows(List<_ItemDraft> drafts) {
+    const dense = EdgeInsets.symmetric(horizontal: 12, vertical: 14);
     return [
       for (var i = 0; i < drafts.length; i++)
         Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Row(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                flex: 2,
-                child: TextField(
-                  controller: drafts[i].quantity,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(
-                      labelText: context.tr('Qty', 'Pila'), isDense: true),
-                ),
+              TextField(
+                controller: drafts[i].name,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(
+                    labelText: context.tr('Item *', 'Butang *'),
+                    isDense: true,
+                    contentPadding: dense,
+                    hintText: context.tr('e.g. compost', 'pananglitan: abono')),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                flex: 3,
-                child: DropdownButtonFormField<String>(
-                  initialValue: drafts[i].unit,
-                  decoration: InputDecoration(
-                      labelText: context.tr('Unit', 'Sukod'), isDense: true),
-                  items: _units
-                      .map((u) => DropdownMenuItem(value: u, child: Text(u)))
-                      .toList(),
-                  onChanged: _busy
-                      ? null
-                      : (v) => setState(() => drafts[i].unit = v),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                flex: 5,
-                child: TextField(
-                  controller: drafts[i].name,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: InputDecoration(
-                      labelText: context.tr('Item *', 'Butang *'),
-                      isDense: true,
-                      hintText: context.tr('e.g. compost', 'pananglitan: abono')),
-                ),
-              ),
-              IconButton(
-                tooltip: i == drafts.length - 1
-                    ? context.tr('Add item', 'Dugangi og butang')
-                    : context.tr('Remove item', 'Tangtanga ang butang'),
-                onPressed: _busy
-                    ? null
-                    : () => setState(() {
-                          if (i == drafts.length - 1) {
-                            drafts.add(_ItemDraft());
-                          } else {
-                            drafts.removeAt(i).dispose();
-                          }
-                        }),
-                icon: Icon(
-                    i == drafts.length - 1 ? Icons.add_circle : Icons.remove_circle),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: drafts[i].quantity,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                          labelText: context.tr('Qty', 'Pila'),
+                          isDense: true,
+                          contentPadding: dense),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      // Long labels shrink with '...' instead of overflowing.
+                      isExpanded: true,
+                      initialValue: drafts[i].unit,
+                      decoration: InputDecoration(
+                          labelText: context.tr('Unit', 'Sukod'),
+                          isDense: true,
+                          contentPadding: dense),
+                      items: _units
+                          .map((u) =>
+                              DropdownMenuItem(value: u, child: Text(u)))
+                          .toList(),
+                      onChanged: _busy
+                          ? null
+                          : (v) => setState(() => drafts[i].unit = v),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: i == drafts.length - 1
+                        ? context.tr('Add item', 'Dugangi og butang')
+                        : context.tr('Remove item', 'Tangtanga ang butang'),
+                    onPressed: _busy
+                        ? null
+                        : () => setState(() {
+                              if (i == drafts.length - 1) {
+                                drafts.add(_ItemDraft());
+                              } else {
+                                drafts.removeAt(i).dispose();
+                              }
+                            }),
+                    icon: Icon(i == drafts.length - 1
+                        ? Icons.add_circle
+                        : Icons.remove_circle),
+                  ),
+                ],
               ),
             ],
           ),

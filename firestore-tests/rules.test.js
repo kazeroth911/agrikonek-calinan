@@ -91,6 +91,10 @@ before(async () => {
   env = await initializeTestEnvironment({
     projectId: "demo-agrikonek",
     firestore: {
+      // Explicit, because firebase.json lets the emulator listen on all
+      // addresses (0.0.0.0) so a phone can reach it for integration tests.
+      host: "127.0.0.1",
+      port: 8080,
       rules: fs.readFileSync(path.join(__dirname, "..", "firestore.rules"), "utf8"),
     },
   });

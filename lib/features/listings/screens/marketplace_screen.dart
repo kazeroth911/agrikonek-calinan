@@ -26,6 +26,7 @@ class MarketplaceScreen extends ConsumerWidget {
     final feed = ref.watch(filteredFeedProvider);
     final me = ref.watch(currentProfileProvider).valueOrNull;
     final meHidden = me?.hidden ?? false;
+    final offline = ref.watch(feedOfflineProvider).valueOrNull ?? false;
 
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
@@ -56,6 +57,7 @@ class MarketplaceScreen extends ConsumerWidget {
                 ),
               ],
             ),
+          if (offline) const _OfflineNotice(),
           const _CategoryChips(),
           Expanded(
             child: feed.when(
@@ -220,6 +222,39 @@ class _Header extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Shown while the feed comes from the copy saved on the phone.
+class _OfflineNotice extends StatelessWidget {
+  const _OfflineNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: scheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.cloud_off_outlined, color: scheme.onSecondaryContainer),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              context.tr(
+                  'No connection. Showing listings saved on this phone.',
+                  'Walay koneksyon. Gipakita ang mga baligya nga natipig sa cellphone.'),
+              style: TextStyle(color: scheme.onSecondaryContainer),
+            ),
+          ),
+        ],
       ),
     );
   }

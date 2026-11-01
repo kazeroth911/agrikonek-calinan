@@ -29,6 +29,13 @@ final listingFeedProvider = StreamProvider<List<Listing>>((ref) {
   return ref.watch(listingRepositoryProvider).watchFeed();
 });
 
+/// Whether the marketplace is showing listings saved on the phone because
+/// it is offline (paper Table 3.6, "offline-cached feed").
+final feedOfflineProvider = StreamProvider<bool>((ref) {
+  ref.watch(authStateProvider);
+  return ref.watch(listingRepositoryProvider).watchFeedIsFromCache();
+});
+
 /// The feed the marketplace screen actually renders: hidden profiles'
 /// listings removed, then category chip + keyword search applied over
 /// the live stream.
