@@ -1,13 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum OfferStatus { pending, accepted, rejected, countered }
+enum OfferStatus { pending, accepted, rejected, countered, withdrawn }
 
 /// One entry in an offer's negotiation history.
 class OfferHistoryEntry {
   const OfferHistoryEntry({
     required this.byUserId,
     required this.amount,
-    required this.action, // bid | counter | accept | reject
+    required this.action, // bid | counter | accept | reject | withdraw
     this.at,
   });
 
@@ -71,10 +71,12 @@ class Offer {
       case OfferStatus.countered:
         return to == OfferStatus.accepted ||
             to == OfferStatus.rejected ||
-            to == OfferStatus.countered;
+            to == OfferStatus.countered ||
+            to == OfferStatus.withdrawn;
       case OfferStatus.accepted:
       case OfferStatus.rejected:
-        return false; // terminal states
+      case OfferStatus.withdrawn:
+        return false; // terminal states (paper §3.5.3)
     }
   }
 

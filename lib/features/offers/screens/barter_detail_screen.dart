@@ -41,6 +41,27 @@ class _BarterDetailScreenState extends ConsumerState<BarterDetailScreen> {
     }
   }
 
+  Future<bool> _confirmWithdraw() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Withdraw your offer? / Bawion ang imong tanyag?'),
+        content: const Text('The other party will be told, and this '
+            'negotiation will end. / Mahibal-an sa pikas, ug matapos na '
+            'kini nga tawaran.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('CANCEL')),
+          FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('WITHDRAW / BAWION')),
+        ],
+      ),
+    );
+    return ok == true;
+  }
+
   Future<void> _counterDialog(BarterProposal proposal, String uid) async {
     final controller = TextEditingController();
     final note = await showDialog<String>(
@@ -67,7 +88,7 @@ class _BarterDetailScreenState extends ConsumerState<BarterDetailScreen> {
               final text = controller.text.trim();
               if (text.isNotEmpty) Navigator.of(context).pop(text);
             },
-            child: const Text('SEND COUNTER'),
+            child: const Text('SEND COUNTER / IPADALA'),
           ),
         ],
       ),
@@ -207,10 +228,10 @@ class _BarterDetailScreenState extends ConsumerState<BarterDetailScreen> {
                     .read(barterControllerProvider)
                     .reject(proposal: proposal, byUserId: uid)),
             icon: const Icon(Icons.close),
-            label: const Text('Reject / Balibari'),
+            label: const Text('Decline / Balibari'),
           ),
         ] else if (proposal.status == BarterStatus.pending ||
-            proposal.status == BarterStatus.countered)
+            proposal.status == BarterStatus.countered) ...[
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -221,6 +242,22 @@ class _BarterDetailScreenState extends ConsumerState<BarterDetailScreen> {
               ),
             ),
           ),
+          if (BarterRepository.canWithdraw(proposal, uid)) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _busy
+                  ? null
+                  : () async {
+                      if (!await _confirmWithdraw()) return;
+                      await _run(() => ref
+                          .read(barterControllerProvider)
+                          .withdraw(proposal: proposal, byUserId: uid));
+                    },
+              icon: const Icon(Icons.undo),
+              label: const Text('Withdraw my proposal / Bawion'),
+            ),
+          ],
+        ],
         if (_busy)
           const Padding(
             padding: EdgeInsets.only(top: 16),

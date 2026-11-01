@@ -21,14 +21,23 @@ class BarterRepository {
   /// move last may act, and a fresh proposal is the owner's move.
   static bool canAct(BarterProposal proposal, String uid) {
     if (uid != proposal.proposerId && uid != proposal.ownerId) return false;
-    if (proposal.status == BarterStatus.accepted ||
-        proposal.status == BarterStatus.rejected) {
-      return false;
-    }
-    final lastActor = proposal.history.isEmpty
-        ? proposal.proposerId
-        : proposal.history.last.byUserId;
-    return lastActor != uid;
+    if (!_isOpen(proposal.status)) return false;
+    return lastActor(proposal) != uid;
+  }
+
+  static bool _isOpen(BarterStatus s) =>
+      s == BarterStatus.pending || s == BarterStatus.countered;
+
+  /// Who made the last move. A fresh proposal is the proposer's.
+  static String lastActor(BarterProposal proposal) => proposal.history.isEmpty
+      ? proposal.proposerId
+      : proposal.history.last.byUserId;
+
+  /// The party who made the last proposal may withdraw it while it is
+  /// waiting for the other party (paper §3.5.3).
+  static bool canWithdraw(BarterProposal proposal, String uid) {
+    if (uid != proposal.proposerId && uid != proposal.ownerId) return false;
+    return _isOpen(proposal.status) && lastActor(proposal) == uid;
   }
 
   /// Update map for a status change, gated by the BarterProposal state
@@ -53,6 +62,7 @@ class BarterRepository {
       BarterStatus.accepted => 'accept',
       BarterStatus.rejected => 'reject',
       BarterStatus.countered => 'counter',
+      BarterStatus.withdrawn => 'withdraw',
       BarterStatus.pending => 'propose',
     };
 

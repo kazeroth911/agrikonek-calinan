@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum BarterStatus { pending, accepted, rejected, countered }
+enum BarterStatus { pending, accepted, rejected, countered, withdrawn }
 
 /// A single item in a barter exchange (e.g. "50 kg manure").
 class BarterItem {
@@ -95,10 +95,12 @@ class BarterProposal {
       case BarterStatus.countered:
         return to == BarterStatus.accepted ||
             to == BarterStatus.rejected ||
-            to == BarterStatus.countered;
+            to == BarterStatus.countered ||
+            to == BarterStatus.withdrawn;
       case BarterStatus.accepted:
       case BarterStatus.rejected:
-        return false; // terminal states
+      case BarterStatus.withdrawn:
+        return false; // terminal states (paper §3.5.3)
     }
   }
 

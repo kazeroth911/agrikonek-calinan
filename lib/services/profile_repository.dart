@@ -37,6 +37,29 @@ class ProfileRepository {
         );
   }
 
+  /// Saves a researcher-prepared profile as HIDDEN (paper §3.5.4 and
+  /// Table 3.14): the profile and the hidden-ID entry are written in one
+  /// batch, so it never appears to other users, not even for a moment.
+  Future<void> createPreparedProfile(Profile profile,
+      {required String byUid}) {
+    final batch = _db.batch();
+    batch.set(_col.doc(profile.userId), {
+      ...profile.toMap(),
+      'hidden': true,
+      'hiddenAt': FieldValue.serverTimestamp(),
+    });
+    batch.set(_db.collection(AppConstants.colHiddenProfiles).doc(profile.userId), {
+      'hiddenAt': FieldValue.serverTimestamp(),
+      'hiddenBy': byUid,
+    });
+    return batch.commit();
+  }
+
+  /// Researcher-admin changes a profile's verification level (Table 3.4).
+  Future<void> setVerificationLevel(String uid, int level) {
+    return _col.doc(uid).update({'verificationLevel': level});
+  }
+
   /// Hides or unhides a profile in one batch: the flag on the profile
   /// and the entry in the public list of hidden IDs always agree.
   Future<void> setHidden({

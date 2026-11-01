@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../models/profile.dart';
 import '../../auth/providers/auth_providers.dart';
+import '../../learn/learn_screen.dart';
 import '../../listings/screens/my_listings_screen.dart';
+import '../widgets/verification_badge.dart';
 
 /// The signed-in farmer's own profile, with the option to hide it from
 /// the marketplace (a participant right in the study's consent terms).
@@ -22,7 +24,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Hide your profile?'),
+          title: const Text('Hide your profile? / Itago ang imong profile?'),
           content: const Text(
               'Your listings will disappear from the marketplace and search. '
               'People you have offers or chats with will see '
@@ -34,7 +36,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                 child: const Text('CANCEL')),
             FilledButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('HIDE')),
+                child: const Text('HIDE / ITAGO')),
           ],
         ),
       );
@@ -74,7 +76,8 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
             Center(child: Text('Could not load your profile.\n$error')),
         data: (profile) {
           if (profile == null) {
-            return const Center(child: Text('No profile found.'));
+            return const Center(
+                child: Text('No profile found. / Walay profile nga nakit-an.'));
           }
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -82,6 +85,13 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
               Text(profile.fullName, style: theme.textTheme.headlineSmall),
               const SizedBox(height: 4),
               Text(profile.barangay),
+              if (profile.verificationLevel > 0) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: VerificationBadge(level: profile.verificationLevel),
+                ),
+              ],
               if (profile.products.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(profile.products.join(', '),
@@ -93,11 +103,24 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                   leading: const Icon(Icons.inventory_2_outlined),
                   title: const Text('My listings / Akong mga baligya'),
                   subtitle:
-                      const Text('Edit, re-open or delete what you posted'),
+                      const Text('Edit, re-open or delete what you posted / '
+                          'Usba, ablihi o papasa ang imong gi-post'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => Navigator.of(context).push(
                       MaterialPageRoute<void>(
                           builder: (_) => const MyListingsScreen())),
+                ),
+              ),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.school_outlined),
+                  title: const Text('Learn / Kat-onan'),
+                  subtitle: const Text(
+                      'Lessons on using the app and selling safely (coming soon)'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                          builder: (_) => const LearnScreen())),
                 ),
               ),
               Card(

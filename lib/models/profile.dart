@@ -23,6 +23,7 @@ class Profile {
     this.consentGiven = false,
     this.consentUrl,
     this.hidden = false,
+    this.verificationLevel = 0,
     this.createdAt,
     this.updatedAt,
   });
@@ -55,6 +56,24 @@ class Profile {
   /// Written only through ProfileRepository.setHidden, never by toMap,
   /// so saving other profile edits can never unhide it by accident.
   final bool hidden;
+
+  /// Table 3.4 of the paper: 1 = the researchers met the person in
+  /// Calinan; 2 = level 1 plus the cooperative confirmed membership, with
+  /// the person's consent (C5). 0 = not recorded (older accounts).
+  /// Set only by researcher-admins; the security rules stop owners from
+  /// changing it.
+  final int verificationLevel;
+
+  static const levelVisited = 1;
+  static const levelCooperativeConfirmed = 2;
+
+  /// What other users see, per Table 3.4.
+  String? get verificationLabel => switch (verificationLevel) {
+        levelVisited => 'Visited by researchers / Gibisita sa mga researcher',
+        levelCooperativeConfirmed =>
+          'Cooperative-confirmed / Gikumpirma sa kooperatiba',
+        _ => null,
+      };
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -96,6 +115,7 @@ class Profile {
       consentGiven: consentGiven ?? this.consentGiven,
       consentUrl: consentUrl ?? this.consentUrl,
       hidden: hidden,
+      verificationLevel: verificationLevel,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
@@ -120,6 +140,7 @@ class Profile {
       'photoUrls': photoUrls,
       'consentGiven': consentGiven,
       'consentUrl': consentUrl,
+      'verificationLevel': verificationLevel,
       'createdAt': createdAt == null
           ? FieldValue.serverTimestamp()
           : Timestamp.fromDate(createdAt!),
@@ -147,6 +168,7 @@ class Profile {
       consentGiven: (map['consentGiven'] ?? false) as bool,
       consentUrl: map['consentUrl'] as String?,
       hidden: (map['hidden'] ?? false) == true,
+      verificationLevel: _levelFromMap(map['verificationLevel']),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
     );
@@ -154,6 +176,16 @@ class Profile {
 
   factory Profile.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) =>
       Profile.fromMap(doc.id, doc.data() ?? const {});
+
+  static int _levelFromMap(Object? raw) {
+    if (raw is num) {
+      final level = raw.toInt();
+      if (level == levelVisited || level == levelCooperativeConfirmed) {
+        return level;
+      }
+    }
+    return 0;
+  }
 
   /// `roles` is stored as a `{role: bool}` map (e.g. `{admin: true,
   /// seller: false}`); only roles set to `true` are active. Older

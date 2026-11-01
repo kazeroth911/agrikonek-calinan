@@ -24,7 +24,7 @@ class MarketplaceScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Calinan Marketplace'),
+        title: const Text('Calinan Marketplace / Merkado'),
         actions: [
           const NotificationBell(),
           IconButton(
@@ -53,13 +53,14 @@ class MarketplaceScreen extends ConsumerWidget {
               MaterialBanner(
                 leading: const Icon(Icons.visibility_off),
                 content: const Text(
-                    'Your profile is hidden. Others cannot see your listings.'),
+                    'Your profile is hidden. Others cannot see your listings. / '
+                    'Nakatago ang imong profile.'),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.of(context).push(
                         MaterialPageRoute(
                             builder: (_) => const MyProfileScreen())),
-                    child: const Text('CHANGE'),
+                    child: const Text('CHANGE / USBA'),
                   ),
                 ],
               ),

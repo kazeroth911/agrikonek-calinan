@@ -394,3 +394,64 @@ describe("profiles and announcements", () => {
     await assertSucceeds(getDocs(collection(db(ADMIN), "announcements")));
   });
 });
+
+// ---------------------------------------------------------------------------
+describe("withdrawing (paper §3.5.3)", () => {
+  it("the buyer can withdraw their waiting bid", async () => {
+    await assertSucceeds(updateDoc(doc(db(BUYER), "offers", "off1"), {
+      status: "withdrawn", updatedAt: serverTimestamp(),
+      history: arrayUnion(entry(BUYER, "withdraw", 90)),
+    }));
+  });
+
+  it("the other party cannot withdraw it for them", async () => {
+    await assertFails(updateDoc(doc(db(SELLER), "offers", "off1"), {
+      status: "withdrawn", updatedAt: serverTimestamp(),
+      history: arrayUnion(entry(SELLER, "withdraw", 90)),
+    }));
+  });
+
+  it("a withdrawn bid is final", async () => {
+    await updateDoc(doc(db(BUYER), "offers", "off1"), {
+      status: "withdrawn", updatedAt: serverTimestamp(),
+      history: arrayUnion(entry(BUYER, "withdraw", 90)),
+    });
+    await assertFails(updateDoc(doc(db(SELLER), "offers", "off1"), {
+      status: "accepted", updatedAt: serverTimestamp(),
+      history: arrayUnion(entry(SELLER, "accept", 90)),
+    }));
+  });
+
+  it("the proposer can withdraw a waiting barter; the owner cannot", async () => {
+    await assertFails(updateDoc(doc(db(SELLER), "barterProposals", "bar1"), {
+      status: "withdrawn", updatedAt: serverTimestamp(),
+      history: arrayUnion(entry(SELLER, "withdraw")),
+    }));
+    await assertSucceeds(updateDoc(doc(db(BUYER), "barterProposals", "bar1"), {
+      status: "withdrawn", updatedAt: serverTimestamp(),
+      history: arrayUnion(entry(BUYER, "withdraw")),
+    }));
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe("verification levels (Table 3.4)", () => {
+  it("a farmer cannot raise their own verification level", async () => {
+    await assertFails(updateDoc(doc(db(BUYER), "profiles", BUYER), {verificationLevel: 2}));
+  });
+
+  it("a researcher-admin can set it", async () => {
+    await assertSucceeds(updateDoc(doc(db(ADMIN), "profiles", BUYER), {verificationLevel: 2}));
+  });
+
+  it("a researcher-admin can prepare a hidden profile", async () => {
+    await assertSucceeds(setDoc(doc(db(ADMIN), "profiles", "new1"), {
+      fullName: "Dina", barangay: "Wangan", roles: {seller: true},
+      phone: "+639171234567", verificationLevel: 1, hidden: true,
+      hiddenAt: serverTimestamp(),
+    }));
+    await assertSucceeds(setDoc(doc(db(ADMIN), "hiddenProfiles", "new1"),
+      {hiddenAt: serverTimestamp(), hiddenBy: ADMIN}));
+    await assertFails(getDoc(doc(db(BUYER), "profiles", "new1")));
+  });
+});

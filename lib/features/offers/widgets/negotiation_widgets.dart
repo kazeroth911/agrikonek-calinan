@@ -17,6 +17,8 @@ String negotiationStatusLabel(String statusName) {
       return 'Rejected / Wala gidawat';
     case 'countered':
       return 'Countered / Gi-counter';
+    case 'withdrawn':
+      return 'Withdrawn / Gibawi';
     default:
       return statusName;
   }
@@ -35,6 +37,8 @@ String negotiationActionLabel(String action) {
       return 'accepted / midawat';
     case 'reject':
       return 'rejected / wala midawat';
+    case 'withdraw':
+      return 'withdrew the offer / gibawi ang tanyag';
     default:
       return action;
   }
@@ -52,6 +56,7 @@ class StatusChip extends StatelessWidget {
       'accepted' => (scheme.primaryContainer, scheme.onPrimaryContainer),
       'rejected' => (scheme.errorContainer, scheme.onErrorContainer),
       'countered' => (scheme.tertiaryContainer, scheme.onTertiaryContainer),
+      'withdrawn' => (scheme.surfaceContainerHighest, scheme.onSurfaceVariant),
       _ => (scheme.secondaryContainer, scheme.onSecondaryContainer),
     };
     return Container(

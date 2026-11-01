@@ -40,6 +40,27 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
     }
   }
 
+  Future<bool> _confirmWithdraw() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Withdraw your offer? / Bawion ang imong tanyag?'),
+        content: const Text('The other party will be told, and this '
+            'negotiation will end. / Mahibal-an sa pikas, ug matapos na '
+            'kini nga tawaran.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('CANCEL')),
+          FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('WITHDRAW / BAWION')),
+        ],
+      ),
+    );
+    return ok == true;
+  }
+
   Future<void> _counterDialog(Offer offer, String uid) async {
     final controller = TextEditingController();
     final amount = await showDialog<num>(
@@ -68,7 +89,7 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
                 Navigator.of(context).pop(parsed);
               }
             },
-            child: const Text('SEND COUNTER'),
+            child: const Text('SEND COUNTER / IPADALA'),
           ),
         ],
       ),
@@ -170,7 +191,7 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
         Text('History / Kasaysayan', style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         if (offer.history.isEmpty)
-          const Text('No history yet.')
+          const Text('No history yet. / Wala pay kasaysayan.')
         else
           for (final entry in offer.history.reversed)
             _HistoryTile(entry: entry, offer: offer, viewerUid: uid),
@@ -204,7 +225,7 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
             label: const Text('Reject / Balibari'),
           ),
         ] else if (offer.status == OfferStatus.pending ||
-            offer.status == OfferStatus.countered)
+            offer.status == OfferStatus.countered) ...[
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -215,6 +236,22 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
               ),
             ),
           ),
+          if (OfferRepository.canWithdraw(offer, uid)) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _busy
+                  ? null
+                  : () async {
+                      if (!await _confirmWithdraw()) return;
+                      await _run(() => ref
+                          .read(offerControllerProvider)
+                          .withdraw(offer: offer, byUserId: uid));
+                    },
+              icon: const Icon(Icons.undo),
+              label: const Text('Withdraw my offer / Bawion'),
+            ),
+          ],
+        ],
         if (_busy)
           const Padding(
             padding: EdgeInsets.only(top: 16),

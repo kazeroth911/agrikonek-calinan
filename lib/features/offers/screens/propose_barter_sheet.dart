@@ -98,6 +98,26 @@ class _ProposeBarterSheetState extends ConsumerState<ProposeBarterSheet> {
       return;
     }
 
+    // Paper §3.5.5: a confirmation step before an offer is sent.
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Send this proposal? / Ipadala ang tanyag?'),
+        content: Text(
+            'You give: ${offered.map((i) => i.toString()).join(', ')}\n'
+            'You receive: ${requested.map((i) => i.toString()).join(', ')}'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('CANCEL')),
+          FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('SEND / IPADALA')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
     setState(() {
       _busy = true;
       _error = null;
@@ -196,7 +216,7 @@ class _ProposeBarterSheetState extends ConsumerState<ProposeBarterSheet> {
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
                   decoration: const InputDecoration(
-                      labelText: 'Qty', isDense: true),
+                      labelText: 'Qty / Pila', isDense: true),
                 ),
               ),
               const SizedBox(width: 8),
@@ -221,7 +241,7 @@ class _ProposeBarterSheetState extends ConsumerState<ProposeBarterSheet> {
                   controller: drafts[i].name,
                   textCapitalization: TextCapitalization.sentences,
                   decoration: const InputDecoration(
-                      labelText: 'Item *', isDense: true,
+                      labelText: 'Item / Butang *', isDense: true,
                       hintText: 'e.g. compost'),
                 ),
               ),

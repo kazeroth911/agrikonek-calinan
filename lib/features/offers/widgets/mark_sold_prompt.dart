@@ -58,7 +58,8 @@ class _MarkSoldPromptState extends ConsumerState<MarkSoldPrompt> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Deal accepted. "${listing.title}" is still open to others.'),
+            Text('Deal accepted. "${listing.title}" is still open to others. / '
+                'Nadawat na ang deal, pero bukas pa ang baligya.'),
             const SizedBox(height: 8),
             FilledButton.icon(
               onPressed: _busy ? null : _markSold,

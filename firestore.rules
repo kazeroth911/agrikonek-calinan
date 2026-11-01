@@ -44,7 +44,7 @@ service cloud.firestore {
         || (isOwner(userId)
             && !request.resource.data.diff(resource.data)
                  .affectedKeys().hasAny(['roles', 'createdAt', 'consentUrl',
-                                         'consentGiven']));
+                                         'consentGiven', 'verificationLevel']));
     }
 
     // ---- listings ------------------------------------------------------
@@ -90,6 +90,8 @@ service cloud.firestore {
     //  - nobody can accept or reject their own last move. (Countering
     //    is allowed for either side at any time, which is how a buyer
     //    revises an open bid.)
+    //  - only the party who made the last move may withdraw it, while it
+    //    waits (paper §3.5.3); withdrawn is final too.
     function listingPath(listingId) {
       return /databases/$(database)/documents/listings/$(listingId);
     }
@@ -109,17 +111,20 @@ service cloud.firestore {
 
     function actionFor(status) {
       return status == 'accepted' ? 'accept'
-        : (status == 'rejected' ? 'reject' : 'counter');
+        : (status == 'rejected' ? 'reject'
+          : (status == 'withdrawn' ? 'withdraw' : 'counter'));
     }
 
     function isValidMove() {
       let to = request.resource.data.status;
       let entry = request.resource.data.history[request.resource.data.history.size() - 1];
       return resource.data.status in ['pending', 'countered']
-        && to in ['accepted', 'rejected', 'countered']
+        && to in ['accepted', 'rejected', 'countered', 'withdrawn']
         && appendsOneEntryBy(request.auth.uid)
         && entry.action == actionFor(to)
-        && (to == 'countered' || lastActor() != request.auth.uid);
+        && (to == 'countered'
+            || (to == 'withdrawn' && lastActor() == request.auth.uid)
+            || (to in ['accepted', 'rejected'] && lastActor() != request.auth.uid));
     }
 
     // ---- offers (bids) -------------------------------------------------

@@ -146,7 +146,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               child: ListTile(
                 dense: true,
                 leading: const Icon(Icons.storefront_outlined),
-                title: Text('About: ${conversation!.relatedListingTitle}'),
+                title: Text(
+                    'About / Bahin sa: ${conversation!.relatedListingTitle}'),
               ),
             ),
           Expanded(

@@ -143,6 +143,18 @@ class OfferController {
         _payload(offer, 'counter', amount));
   }
 
+  /// The last offerer takes back a waiting offer (paper §3.5.3).
+  Future<void> withdraw(
+      {required Offer offer, required String byUserId}) async {
+    if (!OfferRepository.canWithdraw(offer, byUserId)) {
+      throw StateError('Only the last offer can be withdrawn, while it waits.');
+    }
+    await _repo.updateOfferStatus(
+        offer: offer, byUserId: byUserId, to: OfferStatus.withdrawn);
+    await _notify(_otherParty(offer, byUserId), byUserId,
+        _payload(offer, 'withdraw', offer.amount));
+  }
+
   String _otherParty(Offer offer, String byUserId) =>
       byUserId == offer.buyerId ? offer.sellerId : offer.buyerId;
 }

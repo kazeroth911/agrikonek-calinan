@@ -228,7 +228,9 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-          title: Text(_editing ? 'Edit Listing' : 'Post a Listing')),
+          title: Text(_editing
+              ? 'Edit Listing / Usba ang Baligya'
+              : 'Post a Listing / Mag-post og Baligya')),
       body: SafeArea(
         child: Form(
           key: _formKey,
@@ -240,7 +242,7 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
                 maxLength: PostListingScreen.maxTitleLength,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(
-                  labelText: 'What are you selling? *',
+                  labelText: 'What are you selling? / Unsa imong ibaligya? *',
                   hintText: 'e.g. Durian (Puyat), native eggs',
                 ),
                 validator: (v) =>
@@ -267,8 +269,8 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
                       keyboardType: const TextInputType.numberWithOptions(
                           decimal: true),
                       decoration: const InputDecoration(
-                        labelText: 'Price (₱)',
-                        helperText: 'Leave blank if barter only',
+                        labelText: 'Price / Presyo (₱)',
+                        helperText: 'Leave blank if barter only / Ayaw butangi kung baylo lang',
                       ),
                       validator: (v) {
                         final raw = v?.trim().replaceAll(',', '') ?? '';
@@ -286,7 +288,8 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
                     flex: 2,
                     child: DropdownButtonFormField<String>(
                       initialValue: _unit,
-                      decoration: const InputDecoration(labelText: 'Per unit'),
+                      decoration:
+                          const InputDecoration(labelText: 'Per unit / Matag'),
                       items: AppConstants.listingUnits
                           .map((u) =>
                               DropdownMenuItem(value: u, child: Text(u)))
@@ -313,12 +316,13 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
                 maxLines: 3,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(
-                  labelText: 'Description (optional)',
+                  labelText: 'Description / Paghulagway (optional)',
                   hintText: 'Quality, quantity available, pickup notes...',
                 ),
               ),
               const SizedBox(height: 24),
-              Text('Availability (optional)', style: theme.textTheme.titleMedium),
+              Text('Availability / Kanus-a available (optional)',
+                  style: theme.textTheme.titleMedium),
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -327,7 +331,7 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
                       onPressed: _busy ? null : () => _pickDate(isFrom: true),
                       icon: const Icon(Icons.event_available),
                       label: Text(_availableFrom == null
-                          ? 'From'
+                          ? 'From / Gikan'
                           : _dateLabel.format(_availableFrom!)),
                     ),
                   ),
@@ -337,14 +341,14 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
                       onPressed: _busy ? null : () => _pickDate(isFrom: false),
                       icon: const Icon(Icons.event_busy),
                       label: Text(_availableTo == null
-                          ? 'Until'
+                          ? 'Until / Hangtod'
                           : _dateLabel.format(_availableTo!)),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-              Text('Photos (up to ${AppConstants.maxListingPhotos})',
+              Text('Photos / Mga litrato (up to ${AppConstants.maxListingPhotos})',
                   style: theme.textTheme.titleMedium),
               const SizedBox(height: 8),
               Wrap(

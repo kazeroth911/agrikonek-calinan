@@ -85,7 +85,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     controller: _passwordController,
                     obscureText: _obscure,
                     decoration: InputDecoration(
-                      labelText: 'Password',
+                      labelText: 'Password / Pasword',
                       suffixIcon: IconButton(
                         icon: Icon(_obscure
                             ? Icons.visibility_off
@@ -109,7 +109,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             width: 24,
                             child:
                                 CircularProgressIndicator(strokeWidth: 2.5))
-                        : const Text('SIGN IN'),
+                        : const Text('SIGN IN / MO-LOGIN'),
                   ),
                   if (AppConstants.enableOtpSignIn) ...[
                     const SizedBox(height: 12),

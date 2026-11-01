@@ -145,6 +145,19 @@ class BarterController {
         proposal.barterId);
   }
 
+  /// The last proposer takes back a waiting proposal (paper §3.5.3).
+  Future<void> withdraw(
+      {required BarterProposal proposal, required String byUserId}) async {
+    if (!BarterRepository.canWithdraw(proposal, byUserId)) {
+      throw StateError(
+          'Only the last proposal can be withdrawn, while it waits.');
+    }
+    await _repo.updateBarterStatus(
+        proposal: proposal, byUserId: byUserId, to: BarterStatus.withdrawn);
+    await _notify(_otherParty(proposal, byUserId), byUserId, proposal,
+        'withdraw', proposal.barterId);
+  }
+
   String _otherParty(BarterProposal proposal, String byUserId) =>
       byUserId == proposal.proposerId ? proposal.ownerId : proposal.proposerId;
 }

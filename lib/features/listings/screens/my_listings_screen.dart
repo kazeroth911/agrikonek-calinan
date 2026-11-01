@@ -13,10 +13,12 @@ import 'post_listing_screen.dart';
 class MyListingsScreen extends ConsumerWidget {
   const MyListingsScreen({super.key});
 
+  static const activeLabel = 'Active / Aktibo';
+
   static String statusLabel(Listing l, DateTime now) {
-    if (l.status == ListingStatus.closed) return 'Sold / closed';
-    if (!ListingRepository.isOpenForFeed(l, now)) return 'Expired';
-    return 'Active';
+    if (l.status == ListingStatus.closed) return 'Sold / Nabaligya';
+    if (!ListingRepository.isOpenForFeed(l, now)) return 'Expired / Lapas na';
+    return activeLabel;
   }
 
   @override
@@ -61,7 +63,7 @@ class MyListingsScreen extends ConsumerWidget {
               final status = statusLabel(l, now);
               return Card(
                 child: ListTile(
-                  leading: Icon(status == 'Active'
+                  leading: Icon(status == activeLabel
                       ? Icons.storefront
                       : Icons.inventory_2_outlined),
                   title: Text(l.title),

@@ -16,14 +16,16 @@ class NotificationText {
     'accept': 'Offer accepted / Gidawat ang tanyag',
     'reject': 'Offer rejected / Wala gidawat ang tanyag',
     'counter': 'Counter offer / Counter nga tanyag',
+    'withdraw': 'Offer withdrawn / Gibawi ang tanyag',
   };
   static const _bidFallback = 'Bid update / Update sa tanyag';
 
   static const _barterTitles = {
     'propose': 'New barter proposal / Bag-ong tanyag sa baylo',
     'accept': 'Barter accepted / Gidawat ang baylo',
-    'reject': 'Barter rejected / Wala gidawat ang baylo',
+    'reject': 'Barter declined / Wala gidawat ang baylo',
     'counter': 'Barter counter-proposal / Gi-counter ang baylo',
+    'withdraw': 'Barter withdrawn / Gibawi ang baylo',
   };
   static const _barterFallback = 'Barter update / Update sa baylo';
 

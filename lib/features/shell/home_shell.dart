@@ -135,7 +135,7 @@ class _MissingProfileScreen extends ConsumerWidget {
               OutlinedButton(
                 onPressed: () =>
                     ref.read(authServiceProvider).signOut(),
-                child: const Text('Sign out'),
+                child: const Text('Sign out / Mogawas'),
               ),
             ],
           ),

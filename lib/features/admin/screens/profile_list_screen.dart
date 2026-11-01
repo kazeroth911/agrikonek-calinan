@@ -46,12 +46,45 @@ class ProfileListScreen extends ConsumerWidget {
     }
   }
 
+  /// Researcher-admin records the verification level (Table 3.4).
+  Future<void> _setLevel(BuildContext context, WidgetRef ref, Profile p) async {
+    final level = await showDialog<int>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text('Verification level: ${p.fullName}'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.of(context).pop(Profile.levelVisited),
+            child: const Text('Level 1: Visited by researchers'),
+          ),
+          SimpleDialogOption(
+            onPressed: () =>
+                Navigator.of(context).pop(Profile.levelCooperativeConfirmed),
+            child: const Text('Level 2: Cooperative-confirmed '
+                '(only with consent C5 and the cooperative\'s confirmation)'),
+          ),
+        ],
+      ),
+    );
+    if (level == null || level == p.verificationLevel || !context.mounted) {
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(profileRepositoryProvider).setVerificationLevel(p.userId, level);
+    } catch (error) {
+      messenger.showSnackBar(
+          SnackBar(content: Text('Could not change the level: $error')));
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profilesAsync = ref.watch(allProfilesProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profiled Accounts')),
+      appBar: AppBar(
+          title: const Text('Profiled Accounts / Mga na-profile')),
       body: profilesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Could not load profiles:\n$e')),
@@ -72,15 +105,22 @@ class ProfileListScreen extends ConsumerWidget {
                         : p.fullName[0].toUpperCase())),
                 title: Text(p.hidden ? '${p.fullName} (hidden)' : p.fullName),
                 subtitle: Text(
-                    '${p.barangay} • ${p.roles.join(", ")}'
+                    '${p.barangay} • ${p.roles.join(", ")}\n'
+                    '${p.isAdmin ? 'Researcher-admin' : (p.verificationLabel ?? 'Verification level not recorded')}'
                     '${p.products.isEmpty ? '' : '\n${p.products.join(", ")}'}'),
-                isThreeLine: p.products.isNotEmpty,
+                isThreeLine: true,
+                onTap: p.isAdmin ? null : () => _setLevel(context, ref, p),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    p.consentGiven
-                        ? const Icon(Icons.verified, color: Colors.green)
-                        : const Icon(Icons.pending_outlined),
+                    Tooltip(
+                      message: p.consentGiven
+                          ? 'Consent recorded'
+                          : 'Consent not recorded',
+                      child: p.consentGiven
+                          ? const Icon(Icons.task_alt, color: Colors.green)
+                          : const Icon(Icons.pending_outlined),
+                    ),
                     if (!p.isAdmin)
                       IconButton(
                         tooltip: p.hidden ? 'Unhide profile' : 'Hide profile',

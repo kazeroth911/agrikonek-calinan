@@ -34,6 +34,8 @@ The first run downloads the emulator (about 60 MB). Every test should pass. A fa
 ### What the tests cover
 
 - **Listings:** a farmer can post only under their own name and can never hand a listing to someone else. Negative prices are refused.
+- **Withdrawing:** only the party who made the last offer can withdraw it, and a withdrawn bid is final.
+- **Verification levels:** farmers cannot raise their own level. Researcher-admins can set it and prepare hidden profiles.
 - **Bids and barters:** the seller must be the listing's real owner, and nobody can bid on their own or a closed listing. Accepting your own bid or proposal is refused, while countering is allowed. History can only grow by one entry per move. Accepted and rejected are final. Only the two parties can read a bid.
 - **Notifications:** only a party to the bid, barter or chat can notify the other party. Only admins can send announcements, and only the recipient can read a notification or mark it read.
 - **Chat:** a thread's ID must be the two sorted user IDs. Outsiders cannot read or send, and messages cannot be edited.

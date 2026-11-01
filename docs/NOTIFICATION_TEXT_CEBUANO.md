@@ -13,7 +13,7 @@ For each row, write **OK** or a better phrasing in the last column. Keep each Ce
 | 5 | Push and inbox: other bid change | Bid update | Update sa tanyag | |
 | 6 | Push and inbox: someone proposes a barter | New barter proposal | Bag-ong tanyag sa baylo | |
 | 7 | Push and inbox: your barter was accepted | Barter accepted | Gidawat ang baylo | |
-| 8 | Push and inbox: your barter was rejected | Barter rejected | Wala gidawat ang baylo | |
+| 8 | Push and inbox: your barter was declined | Barter declined | Wala gidawat ang baylo | |
 | 9 | Push and inbox: a counter-proposal on a barter | Barter counter-proposal | Gi-counter ang baylo | |
 | 10 | Push and inbox: other barter change | Barter update | Update sa baylo | |
 | 11 | When a listing has no title | a listing | usa ka baligya | |
@@ -23,8 +23,39 @@ For each row, write **OK** or a better phrasing in the last column. Keep each Ce
 | 15 | Announcement push text if none was written | Open the app to read it. | Ablihi ang app aron mabasa. | |
 | 16 | Any other notification | You have a new notification. | Naa kay bag-ong pahibalo. | |
 | 17 | Android Settings → Notifications (channel name) | Bids and barters | Tanyag ug baylo | |
+| 18 | Push and inbox: the other party withdrew a bid | Offer withdrawn | Gibawi ang tanyag | |
+| 19 | Push and inbox: the other party withdrew a barter | Barter withdrawn | Gibawi ang baylo | |
 
 Not translated on purpose: listing titles, peso amounts, people's names, chat messages and announcement text written by researchers. Those are shown exactly as typed.
+
+## On-screen labels added on 1 November 2026
+
+These make the screens in the paper's figures bilingual. Same instructions: write **OK** or a better phrasing.
+
+| # | Screen | English | Cebuano | OK / suggested change |
+|---|---|---|---|---|
+| L1 | Sign in | Password / Sign in | Pasword / Mo-login | |
+| L2 | Marketplace title | Calinan Marketplace | Merkado | |
+| L3 | Listing detail title | Listing | Baligya | |
+| L4 | Post a listing | Post a Listing / Edit Listing | Mag-post og Baligya / Usba ang Baligya | |
+| L5 | Post a listing | What are you selling? | Unsa imong ibaligya? | |
+| L6 | Post a listing | Price / Per unit / Description | Presyo / Matag / Paghulagway | |
+| L7 | Post a listing | Leave blank if barter only | Ayaw butangi kung baylo lang | |
+| L8 | Post a listing | Availability / From / Until / Photos | Kanus-a available / Gikan / Hangtod / Mga litrato | |
+| L9 | Listing owner | Re-open Listing / Delete Listing | Ablihi pag-usab / Papasa | |
+| L10 | My listings | Sold / Expired / Active | Nabaligya / Lapas na / Aktibo | |
+| L11 | Bid and barter | Send this offer? / Send | Ipadala ang tanyag? / Ipadala | |
+| L12 | Bid and barter | Withdraw my offer | Bawion | |
+| L13 | Barter | Decline | Balibari | |
+| L14 | Status | Withdrawn | Gibawi | |
+| L15 | Profiles | Visited by researchers | Gibisita sa mga researcher | |
+| L16 | Profiles | Cooperative-confirmed | Gikumpirma sa kooperatiba | |
+| L17 | Listing map | Approximate area only | Gibanabana lang nga lugar | |
+| L18 | Learn | Learn / Lessons are coming soon | Kat-onan / Umaabot pa ang mga leksyon | |
+| L19 | Researcher screens | Profile a Farmer / Profiled Accounts | I-profile ang Mag-uuma / Mga na-profile | |
+| L20 | Chat | About | Bahin sa | |
+
+The four bottom tabs (Market, Bids, Barter, Messages) stay in English: two languages do not fit in a tab label on small phones.
 
 ## Changing a line
 

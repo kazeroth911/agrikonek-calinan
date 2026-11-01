@@ -17,8 +17,10 @@ import '../../offers/screens/propose_barter_sheet.dart';
 import '../../offers/widgets/negotiation_widgets.dart';
 import '../../profile/providers/visibility_providers.dart';
 import '../../profile/widgets/profile_unavailable_banner.dart';
+import '../../profile/widgets/verification_badge.dart';
 import '../providers/listing_providers.dart';
 import '../widgets/listing_card.dart' show listingPriceLabel;
+import '../widgets/listing_map_preview.dart';
 import 'post_listing_screen.dart';
 
 /// Full listing view: photo gallery, price, farmer info with barangay,
@@ -35,7 +37,7 @@ class ListingDetailScreen extends ConsumerWidget {
     final listingAsync = ref.watch(listingDetailProvider(listingId));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Listing')),
+      appBar: AppBar(title: const Text('Listing / Baligya')),
       body: listingAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
@@ -48,7 +50,8 @@ class ListingDetailScreen extends ConsumerWidget {
         data: (listing) {
           if (listing == null) {
             return const Center(
-                child: Text('This listing has been removed.'));
+                child: Text('This listing has been removed. / '
+                    'Wala na kini nga baligya.'));
           }
           return _ListingDetailBody(listing: listing);
         },
@@ -142,6 +145,11 @@ class _ListingDetailBody extends ConsumerWidget {
               ],
               const SizedBox(height: 16),
               _FarmerCard(listing: listing),
+              if (ref.watch(ownerProfileProvider(listing.ownerId)).valueOrNull
+                  case final owner? when owner.farmLocation != null) ...[
+                const SizedBox(height: 12),
+                ListingMapPreview(farm: owner.farmLocation!),
+              ],
               const SizedBox(height: 24),
               if (isOwner)
                 _OwnerActions(listing: listing)
@@ -214,6 +222,11 @@ class _FarmerCard extends ConsumerWidget {
     final theme = Theme.of(context);
     final distanceAsync =
         ref.watch(listingDistanceKmProvider(listing.ownerId));
+    final level = ref
+            .watch(ownerProfileProvider(listing.ownerId))
+            .valueOrNull
+            ?.verificationLevel ??
+        0;
 
     return Card(
       child: Padding(
@@ -235,6 +248,11 @@ class _FarmerCard extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(listing.ownerName, style: theme.textTheme.titleMedium),
+                  if (level > 0) ...[
+                    const SizedBox(height: 4),
+                    VerificationBadge(level: level),
+                    const SizedBox(height: 4),
+                  ],
                   Row(
                     children: [
                       const Icon(Icons.place, size: 16),
@@ -373,7 +391,7 @@ class _OwnerActions extends ConsumerWidget {
               failure: 'Could not re-open',
             ),
             icon: const Icon(Icons.refresh),
-            label: const Text('Re-open Listing'),
+            label: const Text('Re-open Listing / Ablihi pag-usab'),
           ),
         const SizedBox(height: 12),
         OutlinedButton.icon(
@@ -381,7 +399,7 @@ class _OwnerActions extends ConsumerWidget {
             final confirmed = await showDialog<bool>(
               context: context,
               builder: (context) => AlertDialog(
-                title: const Text('Delete listing?'),
+                title: const Text('Delete listing? / Papason ang baligya?'),
                 content: const Text(
                     'This removes the listing permanently. / Mawala kini '
                     'nga baligya hangtod sa hangtod.'),
@@ -392,7 +410,7 @@ class _OwnerActions extends ConsumerWidget {
                   ),
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(true),
-                    child: const Text('DELETE'),
+                    child: const Text('DELETE / PAPASA'),
                   ),
                 ],
               ),
@@ -409,7 +427,7 @@ class _OwnerActions extends ConsumerWidget {
             }
           },
           icon: const Icon(Icons.delete_outline),
-          label: const Text('Delete Listing'),
+          label: const Text('Delete Listing / Papasa'),
         ),
       ],
     );

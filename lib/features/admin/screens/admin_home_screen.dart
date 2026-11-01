@@ -40,7 +40,7 @@ class AdminHomeScreen extends ConsumerWidget {
           Card(
             child: ListTile(
               leading: const Icon(Icons.person_add_alt_1, size: 36),
-              title: const Text('Profile a Farmer'),
+              title: const Text('Profile a Farmer / I-profile ang Mag-uuma'),
               subtitle:
                   const Text('Field profiling form — creates account + profile'),
               onTap: () => Navigator.of(context).push(MaterialPageRoute(
@@ -50,7 +50,7 @@ class AdminHomeScreen extends ConsumerWidget {
           Card(
             child: ListTile(
               leading: const Icon(Icons.groups, size: 36),
-              title: const Text('Profiled Accounts'),
+              title: const Text('Profiled Accounts / Mga na-profile'),
               subtitle: const Text('Review and verify preloaded profiles'),
               onTap: () => Navigator.of(context).push(MaterialPageRoute(
                   builder: (_) => const ProfileListScreen())),
@@ -59,7 +59,7 @@ class AdminHomeScreen extends ConsumerWidget {
           Card(
             child: ListTile(
               leading: const Icon(Icons.campaign, size: 36),
-              title: const Text('Announcements'),
+              title: const Text('Announcements / Mga Pahibalo'),
               subtitle: const Text(
                   'Send a notice to all farmers, one barangay, or chosen people'),
               onTap: () => Navigator.of(context).push(MaterialPageRoute(

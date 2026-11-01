@@ -78,6 +78,25 @@ class _PlaceBidSheetState extends ConsumerState<PlaceBidSheet> {
     final amount =
         num.parse(_amountController.text.trim().replaceAll(',', ''));
 
+    // Paper §3.5.5: a confirmation step before an offer is sent.
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Send this offer? / Ipadala ang tanyag?'),
+        content: Text('${pesos(amount)} for "${widget.listing.title}".\n'
+            'The seller will be notified. / Pahibal-on ang namaligya.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('CANCEL')),
+          FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('SEND / IPADALA')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
     setState(() {
       _busy = true;
       _error = null;
