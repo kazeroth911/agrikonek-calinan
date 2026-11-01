@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/l10n/app_language.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/providers/auth_providers.dart';
 import 'features/auth/screens/login_screen.dart';
@@ -15,6 +16,9 @@ class AgriKonekApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authStateProvider);
     final pushService = PushNotificationService.instance;
+    final language = ref.watch(languageProvider);
+    // Pushes are written in the language this phone uses.
+    pushService.setLanguage(language.code);
 
     return MaterialApp(
       title: 'AgriKonek Calinan',
@@ -22,6 +26,8 @@ class AgriKonekApp extends ConsumerWidget {
       theme: AppTheme.light,
       navigatorKey: pushService.navigatorKey,
       scaffoldMessengerKey: pushService.scaffoldMessengerKey,
+      builder: (context, child) =>
+          LanguageScope(language: language, child: child ?? const SizedBox()),
       routes: {
         '/notifications': (context) => const NotificationsScreen(),
       },

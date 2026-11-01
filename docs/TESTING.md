@@ -5,7 +5,7 @@ AgriKonek has three test suites. Run all three before a release and record each 
 | Suite | What it checks | Where | Command (from the project root) |
 |---|---|---|---|
 | Flutter unit tests | Models, validators, search, negotiation rules, notification wording, recipient picking, listing expiry, passwords | `test/` | `flutter test` |
-| Cloud Function tests | Push wording, the send logic, dead-token clean-up, and that push and inbox wording match | `functions/test/` | `cd functions; npm test; cd ..` |
+| Cloud Function tests | Push wording in English and Cebuano, one send per language, dead-token clean-up, and that push and inbox wording match | `functions/test/` | `cd functions; npm test; cd ..` |
 | Security-rule tests | Who may read and write each collection: bids, barters, listings, chat, notifications, hiding, announcements | `firestore-tests/` | see below |
 
 ## Security-rule tests
@@ -41,6 +41,7 @@ The first run downloads the emulator (about 60 MB). Every test should pass. A fa
 - **Chat:** a thread's ID must be the two sorted user IDs. Outsiders cannot read or send, and messages cannot be edited.
 - **Profile hiding:** a hidden profile is readable only by its owner and admins. It receives no new bids or messages, and only the owner or an admin can hide it.
 - **Profiles and announcements:** farmers cannot make themselves admin or change their consent record. Only admins can read the announcement history.
+- **Push tokens:** a user can save a push token only under their own account, with the language set to English or Cebuano.
 
 ## Storage rules
 

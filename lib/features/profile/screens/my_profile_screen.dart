@@ -5,7 +5,9 @@ import '../../../models/profile.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../learn/learn_screen.dart';
 import '../../listings/screens/my_listings_screen.dart';
+import '../../settings/settings_screen.dart';
 import '../widgets/verification_badge.dart';
+import '../../../core/l10n/app_language.dart';
 
 /// The signed-in farmer's own profile, with the option to hide it from
 /// the marketplace (a participant right in the study's consent terms).
@@ -20,23 +22,37 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
   bool _saving = false;
 
   Future<void> _setHidden(Profile profile, bool hide) async {
+    // Worded before any await, while the screen's context is safe to use.
+    final done = hide
+        ? context.tr('Your profile is now hidden.',
+            'Nakatago na ang imong profile.')
+        : context.tr('Your profile is visible again.',
+            'Makita na usab ang imong profile.');
+    final failed = context.tr(
+        'Could not change visibility', 'Wala nausab ang pagpakita');
     if (hide) {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Hide your profile? / Itago ang imong profile?'),
-          content: const Text(
+          title: Text(context.tr(
+              'Hide your profile?', 'Itago ang imong profile?')),
+          content: Text(context.tr(
               'Your listings will disappear from the marketplace and search. '
-              'People you have offers or chats with will see '
-              '"This profile is unavailable." and cannot send you new bids, '
-              'barters or messages.\n\nYou can unhide it here at any time.'),
+                  'People you have offers or chats with will see '
+                  '"This profile is unavailable." and cannot send you new bids, '
+                  'barters or messages.\n\nYou can unhide it here at any time.',
+              'Mawala ang imong mga baligya sa merkado ug sa pagpangita. '
+                  'Ang mga tawo nga imong ka-tanyag o ka-chat makakita og '
+                  '"Dili na makita kini nga profile." ug dili na sila '
+                  'makapadala og bag-ong tanyag, baylo o mensahe.\n\n'
+                  'Mahimo nimo kining ipakita pag-usab dinhi bisan kanus-a.')),
           actions: [
             TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('CANCEL')),
+                child: Text(context.tr('CANCEL', 'KANSELAHON'))),
             FilledButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('HIDE / ITAGO')),
+                child: Text(context.tr('HIDE', 'ITAGO'))),
           ],
         ),
       );
@@ -51,13 +67,9 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
             hidden: hide,
             byUid: profile.userId,
           );
-      messenger.showSnackBar(SnackBar(
-          content: Text(hide
-              ? 'Your profile is now hidden.'
-              : 'Your profile is visible again.')));
+      messenger.showSnackBar(SnackBar(content: Text(done)));
     } catch (error) {
-      messenger.showSnackBar(
-          SnackBar(content: Text('Could not change visibility: $error')));
+      messenger.showSnackBar(SnackBar(content: Text('$failed: $error')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -69,15 +81,17 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My profile / Akong profile')),
+      appBar: AppBar(title: Text(context.tr('My profile', 'Akong profile'))),
       body: profileAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) =>
-            Center(child: Text('Could not load your profile.\n$error')),
+            Center(
+                child: Text('${context.tr('Could not load your profile.', 'Wala ma-load ang imong profile.')}\n$error')),
         data: (profile) {
           if (profile == null) {
-            return const Center(
-                child: Text('No profile found. / Walay profile nga nakit-an.'));
+            return Center(
+                child: Text(context.tr(
+                    'No profile found.', 'Walay profile nga nakit-an.')));
           }
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -101,10 +115,10 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
               Card(
                 child: ListTile(
                   leading: const Icon(Icons.inventory_2_outlined),
-                  title: const Text('My listings / Akong mga baligya'),
-                  subtitle:
-                      const Text('Edit, re-open or delete what you posted / '
-                          'Usba, ablihi o papasa ang imong gi-post'),
+                  title: Text(context.tr('My listings', 'Akong mga baligya')),
+                  subtitle: Text(context.tr(
+                      'Edit, re-open or delete what you posted',
+                      'Usba, ablihi o papasa ang imong gi-post')),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => Navigator.of(context).push(
                       MaterialPageRoute<void>(
@@ -114,9 +128,10 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
               Card(
                 child: ListTile(
                   leading: const Icon(Icons.school_outlined),
-                  title: const Text('Learn / Kat-onan'),
-                  subtitle: const Text(
-                      'Lessons on using the app and selling safely (coming soon)'),
+                  title: Text(context.tr('Learn', 'Kat-onan')),
+                  subtitle: Text(context.tr(
+                      'Lessons on using the app and selling safely (coming soon)',
+                      'Mga leksyon sa paggamit sa app ug luwas nga pagbaligya (umaabot pa)')),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => Navigator.of(context).push(
                       MaterialPageRoute<void>(
@@ -131,10 +146,25 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                   secondary: Icon(profile.hidden
                       ? Icons.visibility_off
                       : Icons.visibility_outlined),
-                  title: const Text('Hide my profile / Itago'),
+                  title: Text(context.tr('Hide my profile', 'Itago ang akong profile')),
                   subtitle: Text(profile.hidden
-                      ? 'Hidden: your listings are not shown to others.'
-                      : 'Visible: others can see your listings and contact you.'),
+                      ? context.tr(
+                          'Hidden: your listings are not shown to others.',
+                          'Nakatago: dili makita sa uban ang imong mga baligya.')
+                      : context.tr(
+                          'Visible: others can see your listings and contact you.',
+                          'Makita: makita sa uban ang imong mga baligya ug makontak ka nila.')),
+                ),
+              ),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.translate),
+                  title: Text(context.tr('Language', 'Pinulongan')),
+                  subtitle: Text(context.language.displayName),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                          builder: (_) => const SettingsScreen())),
                 ),
               ),
             ],

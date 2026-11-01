@@ -354,8 +354,9 @@ service cloud.firestore {
 
       allow create, update: if isOwner(userId)
         && request.resource.data.keys().hasOnly([
-          'token', 'platform', 'updatedAt'
+          'token', 'platform', 'updatedAt', 'language'
         ])
+        && request.resource.data.get('language', 'en') in ['en', 'ceb']
         && request.resource.data.keys().hasAll([
           'token', 'platform', 'updatedAt'
         ])

@@ -1,3 +1,4 @@
+import 'package:agrikonek_calinan/core/l10n/app_language.dart';
 import 'package:agrikonek_calinan/features/notifications/notification_text.dart';
 import 'package:agrikonek_calinan/models/app_notification.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -55,32 +56,48 @@ void main() {
     test('bid notifications show the action and peso amount', () {
       final text = NotificationText.describe(
           'bid', {'action': 'bid', 'listingTitle': 'Durian', 'amount': 1250});
-      expect(text.title, 'New cash offer / Bag-ong tanyag');
+      expect(text.title, 'New cash offer');
       expect(text.body, 'Durian (₱1250.00)');
       expect(NotificationText.describe('bid', {'action': 'counter'}).title,
-          'Counter offer / Counter nga tanyag');
+          'Counter offer');
+    });
+
+    test('Cebuano wording only, when Cebuano is chosen', () {
+      final text = NotificationText.describe(
+          'bid',
+          {'action': 'bid', 'listingTitle': 'Durian', 'amount': 1250},
+          AppLanguage.cebuano);
+      expect(text.title, 'Bag-ong tanyag');
+      expect(text.body, 'Durian (₱1250.00)');
+      expect(
+          NotificationText.describe(
+                  'barter', {'action': 'withdraw'}, AppLanguage.cebuano)
+              .title,
+          'Gibawi ang baylo');
+      expect(NotificationText.describe('bid', {}, AppLanguage.cebuano).body,
+          'usa ka baligya');
     });
 
     test('barter notifications use barter wording', () {
       final text = NotificationText.describe(
           'barter', {'action': 'propose', 'listingTitle': 'Cacao'});
-      expect(text.title, 'New barter proposal / Bag-ong tanyag sa baylo');
+      expect(text.title, 'New barter proposal');
       expect(text.body, 'Cacao');
       expect(NotificationText.describe('barter', {'action': 'accept'}).title,
-          'Barter accepted / Gidawat ang baylo');
+          'Barter accepted');
     });
 
     test('missing or bad fields fall back safely', () {
       final empty = NotificationText.describe('bid', {});
-      expect(empty.title, 'Bid update / Update sa tanyag');
-      expect(empty.body, 'a listing / usa ka baligya');
+      expect(empty.title, 'Bid update');
+      expect(empty.body, 'a listing');
       expect(NotificationText.describe('bid', {'amount': '500'}).body,
-          'a listing / usa ka baligya');
+          'a listing');
       expect(NotificationText.describe('unknown', {}).title, 'AgriKonek');
       expect(NotificationText.describe('admin', {}).title,
-          'AgriKonek announcement / Pahibalo sa AgriKonek');
+          'AgriKonek announcement');
       expect(NotificationText.describe('msg', {'preview': '  '}).body,
-          'You have a new message. / Naa kay bag-ong mensahe.');
+          'You have a new message.');
     });
   });
 }

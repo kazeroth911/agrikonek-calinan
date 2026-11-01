@@ -10,6 +10,7 @@ import '../offers/providers/barter_providers.dart';
 import '../offers/providers/offer_providers.dart';
 import '../offers/screens/my_barters_screen.dart';
 import '../offers/screens/my_offers_screen.dart';
+import '../../core/l10n/app_language.dart';
 
 /// Routes the signed-in user by role:
 ///   admin  -> AdminHomeScreen (researcher profiling tools)
@@ -67,10 +68,10 @@ class _FarmerShellState extends ConsumerState<_FarmerShell> {
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: [
-          const NavigationDestination(
-            icon: Icon(Icons.storefront_outlined),
-            selectedIcon: Icon(Icons.storefront),
-            label: 'Market',
+          NavigationDestination(
+            icon: const Icon(Icons.storefront_outlined),
+            selectedIcon: const Icon(Icons.storefront),
+            label: context.tr('Market', 'Merkado'),
           ),
           NavigationDestination(
             icon: Badge(
@@ -79,7 +80,7 @@ class _FarmerShellState extends ConsumerState<_FarmerShell> {
               child: const Icon(Icons.gavel_outlined),
             ),
             selectedIcon: const Icon(Icons.gavel),
-            label: 'Bids',
+            label: context.tr('Bids', 'Tanyag'),
           ),
           NavigationDestination(
             icon: Badge(
@@ -88,7 +89,7 @@ class _FarmerShellState extends ConsumerState<_FarmerShell> {
               child: const Icon(Icons.swap_horiz_outlined),
             ),
             selectedIcon: const Icon(Icons.swap_horiz),
-            label: 'Barter',
+            label: context.tr('Barter', 'Baylo'),
           ),
           NavigationDestination(
             icon: Badge(
@@ -97,7 +98,7 @@ class _FarmerShellState extends ConsumerState<_FarmerShell> {
               child: const Icon(Icons.chat_bubble_outline),
             ),
             selectedIcon: const Icon(Icons.chat_bubble),
-            label: 'Messages',
+            label: context.tr('Messages', 'Mensahe'),
           ),
         ],
       ),
@@ -122,9 +123,12 @@ class _MissingProfileScreen extends ConsumerWidget {
             children: [
               const Icon(Icons.person_search, size: 64),
               const SizedBox(height: 16),
-              const Text(
-                'Your account exists, but your profile is not yet set up.\n'
-                'Please contact your researcher.',
+              Text(
+                context.tr(
+                    'Your account exists, but your profile is not yet set up.\n'
+                        'Please contact your researcher.',
+                    'Naa na imong account, pero wala pa naandam ang imong profile.\n'
+                        'Palihug kontaka ang imong researcher.'),
                 textAlign: TextAlign.center,
               ),
               if (detail != null) ...[
@@ -135,7 +139,7 @@ class _MissingProfileScreen extends ConsumerWidget {
               OutlinedButton(
                 onPressed: () =>
                     ref.read(authServiceProvider).signOut(),
-                child: const Text('Sign out / Mogawas'),
+                child: Text(context.tr('Sign out', 'Mogawas')),
               ),
             ],
           ),

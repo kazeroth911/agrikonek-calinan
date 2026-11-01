@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../models/listing.dart';
+import '../../../core/l10n/app_language.dart';
 
 final _priceFormat = NumberFormat('#,##0.##');
 
 /// "₱1,250 / sack", "₱80 / kg", or "Barter" when the listing has no price.
-String listingPriceLabel(Listing listing) {
-  if (listing.price == null) return 'Barter / Baylo';
+String listingPriceLabel(Listing listing,
+    [AppLanguage language = AppLanguage.english]) {
+  if (listing.price == null) return tr(language, 'Barter', 'Baylo');
   final price = '₱${_priceFormat.format(listing.price)}';
   return listing.unit == null ? price : '$price / ${listing.unit}';
 }
@@ -49,7 +51,7 @@ class ListingCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      listingPriceLabel(listing),
+                      listingPriceLabel(listing, context.language),
                       style: theme.textTheme.titleSmall?.copyWith(
                         color: theme.colorScheme.primary,
                         fontWeight: FontWeight.w700,
@@ -69,7 +71,7 @@ class ListingCard extends StatelessWidget {
                         _MiniChip(label: listing.category),
                         if (barterable)
                           _MiniChip(
-                            label: 'Open to barter',
+                            label: context.tr('Open to barter', 'Pwede i-baylo'),
                             color: theme.colorScheme.tertiaryContainer,
                           ),
                       ],

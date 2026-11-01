@@ -22,6 +22,8 @@ dependencies:
   # tiles, no API key or billing account.
   flutter_map: ^8.1.1
   latlong2: ^0.9.1
+  # Remembers the chosen app language on the phone.
+  shared_preferences: ^2.3.0
 
 dev_dependencies:
   flutter_test:

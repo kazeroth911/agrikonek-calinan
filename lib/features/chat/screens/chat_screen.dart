@@ -13,6 +13,7 @@ import '../../notifications/providers/notification_providers.dart';
 import '../../profile/providers/visibility_providers.dart';
 import '../../profile/widgets/profile_unavailable_banner.dart';
 import '../providers/chat_providers.dart';
+import '../../../core/l10n/app_language.dart';
 
 /// One-to-one chat. Opening it clears the unread count and marks this
 /// thread's message notifications as read.
@@ -102,18 +103,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _text.clear();
     // Not awaited: Firestore shows the message at once and syncs it when
     // the phone has signal, which matters on weak rural connections.
-    unawaited(_deliver(conversation, text, ScaffoldMessenger.of(context)));
+    final failed = context.tr('Message not sent', 'Wala napadala');
+    unawaited(_deliver(
+        conversation, text, ScaffoldMessenger.of(context), failed));
   }
 
   Future<void> _deliver(Conversation conversation, String text,
-      ScaffoldMessengerState messenger) async {
+      ScaffoldMessengerState messenger, String failed) async {
     try {
       await ref
           .read(chatControllerProvider)
           .send(conversation: conversation, text: text);
     } catch (error) {
       messenger.showSnackBar(
-        SnackBar(content: Text('Message not sent / Wala napadala: $error')),
+        SnackBar(content: Text('$failed: $error')),
       );
     }
   }
@@ -138,8 +141,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       body: Column(
         children: [
           if (otherHidden)
-            const ProfileUnavailableBanner(
-                detail: 'You can read past messages but not send new ones.'),
+            ProfileUnavailableBanner(
+                detail: context.tr(
+                    'You can read past messages but not send new ones.',
+                    'Mabasa nimo ang daang mga mensahe pero dili na makapadala og bag-o.')),
           if (conversation?.relatedListingTitle != null)
             Material(
               color: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -147,7 +152,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 dense: true,
                 leading: const Icon(Icons.storefront_outlined),
                 title: Text(
-                    'About / Bahin sa: ${conversation!.relatedListingTitle}'),
+                    '${context.tr('About', 'Bahin sa')}: ${conversation!.relatedListingTitle}'),
               ),
             ),
           Expanded(
@@ -156,14 +161,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               error: (error, _) => Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
-                  child: Text('Could not load messages.\n$error',
+                  child: Text(
+                      '${context.tr('Could not load messages.', 'Wala ma-load ang mga mensahe.')}\n$error',
                       textAlign: TextAlign.center),
                 ),
               ),
               data: (messages) {
                 if (messages.isEmpty) {
-                  return const Center(
-                    child: Text('Say hello! / Pangumusta!'),
+                  return Center(
+                    child: Text(context.tr('Say hello!', 'Pangumusta!')),
                   );
                 }
                 return ListView.builder(
@@ -192,17 +198,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       maxLines: 4,
                       maxLength: Message.maxLength,
                       textCapitalization: TextCapitalization.sentences,
-                      decoration: const InputDecoration(
-                        hintText: 'Type a message / Pag-type og mensahe',
+                      decoration: InputDecoration(
+                        hintText: context.tr('Type a message', 'Pag-type og mensahe'),
                         counterText: '',
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
                         isDense: true,
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   IconButton.filled(
-                    tooltip: 'Send / Ipadala',
+                    tooltip: context.tr('Send', 'Ipadala'),
                     icon: const Icon(Icons.send),
                     onPressed: (conversation == null || otherHidden)
                         ? null
@@ -228,7 +234,7 @@ class _Bubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final time = message.sentAt == null
-        ? 'Sending...'
+        ? context.tr('Sending...', 'Ginapadala...')
         : DateFormat('MMM d, h:mm a').format(message.sentAt!.toLocal());
 
     return Align(

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import '../../../core/l10n/app_language.dart';
 
 /// Map preview on the listing detail (paper §2.8, §3.4.1, Table 3.2):
 /// flutter_map with OpenStreetMap tiles, attribution shown, no API key.
@@ -70,7 +71,7 @@ class ListingMapPreview extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Approximate area only / Gibanabana lang nga lugar',
+          context.tr('Approximate area only', 'Gibanabana lang nga lugar'),
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ],

@@ -11,6 +11,7 @@ import '../../../core/utils/validators.dart';
 import '../../../models/listing.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../providers/listing_providers.dart';
+import '../../../core/l10n/app_language.dart';
 
 /// Post a product/resource listing (paper workflow 2), or edit one when
 /// [existing] is given. Minimal fields per the HCI commitments; photos
@@ -116,19 +117,23 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
   Future<void> _post() async {
     if (!_formKey.currentState!.validate()) return;
     if (_category == null) {
-      setState(() => _error = 'Please select a category. / Pilia ang kategorya.');
+      setState(() => _error =
+          context.tr('Please select a category.', 'Pilia ang kategorya.'));
       return;
     }
     final price = _price;
     if (price == null && !_openToBarter) {
-      setState(() => _error =
-          'Enter a price, or turn on barter for a barter-only listing.');
+      setState(() => _error = context.tr(
+          'Enter a price, or turn on barter for a barter-only listing.',
+          'Butangi og presyo, o i-on ang baylo kung baylo lang.'));
       return;
     }
 
     final profile = ref.read(currentProfileProvider).valueOrNull;
     if (profile == null) {
-      setState(() => _error = 'Your profile is still loading. Try again.');
+      setState(() => _error = context.tr(
+          'Your profile is still loading. Try again.',
+          'Nag-load pa ang imong profile. Sulayi pag-usab.'));
       return;
     }
 
@@ -175,8 +180,10 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(_photos.isNotEmpty &&
                   newPhotoUrls.length < _photos.length
-              ? 'Changes saved, but new photos could not be uploaded.'
-              : 'Changes saved. / Na-save na.'),
+              ? context.tr(
+                  'Changes saved, but new photos could not be uploaded.',
+                  'Na-save na, pero wala ma-upload ang bag-ong mga litrato.')
+              : context.tr('Changes saved.', 'Na-save na.')),
         ));
         Navigator.of(context).pop();
         return;
@@ -204,20 +211,27 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
       if (!mounted) return;
       final messenger = ScaffoldMessenger.of(context);
       if (_photos.isNotEmpty && newPhotoUrls.length < _photos.length) {
-        messenger.showSnackBar(const SnackBar(
-          content: Text('Listing posted, but photos could not be uploaded. '
-              'You can add them later.'),
+        messenger.showSnackBar(SnackBar(
+          content: Text(context.tr(
+              'Listing posted, but photos could not be uploaded. '
+                  'You can add them later.',
+              'Na-post na ang baligya, pero wala ma-upload ang mga litrato. '
+                  'Mahimo nimo kining idugang unya.')),
         ));
       } else {
-        messenger.showSnackBar(const SnackBar(
-          content: Text('Listing posted! / Na-post na ang baligya!'),
+        messenger.showSnackBar(SnackBar(
+          content: Text(
+              context.tr('Listing posted!', 'Na-post na ang baligya!')),
         ));
       }
       Navigator.of(context).pop();
     } catch (e) {
-      setState(() => _error = _editing
-          ? 'Could not save changes: $e'
-          : 'Could not post listing: $e');
+      if (mounted) {
+        final language = ref.read(languageProvider);
+        setState(() => _error = _editing
+            ? '${tr(language, 'Could not save changes', 'Wala na-save ang mga kausaban')}: $e'
+            : '${tr(language, 'Could not post listing', 'Wala na-post ang baligya')}: $e');
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -229,8 +243,8 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
     return Scaffold(
       appBar: AppBar(
           title: Text(_editing
-              ? 'Edit Listing / Usba ang Baligya'
-              : 'Post a Listing / Mag-post og Baligya')),
+              ? context.tr('Edit Listing', 'Usba ang Baligya')
+              : context.tr('Post a Listing', 'Mag-post og Baligya'))),
       body: SafeArea(
         child: Form(
           key: _formKey,
@@ -241,18 +255,22 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
                 controller: _titleController,
                 maxLength: PostListingScreen.maxTitleLength,
                 textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  labelText: 'What are you selling? / Unsa imong ibaligya? *',
-                  hintText: 'e.g. Durian (Puyat), native eggs',
+                decoration: InputDecoration(
+                  labelText: context.tr(
+                      'What are you selling? *', 'Unsa imong ibaligya? *'),
+                  hintText: context.tr('e.g. Durian (Puyat), native eggs',
+                      'pananglitan: Durian (Puyat), itlog nga bisaya'),
                 ),
-                validator: (v) =>
-                    Validators.requiredField(v, label: 'Title'),
+                validator: (v) => Validators.requiredField(v, label: 'Title') ==
+                        null
+                    ? null
+                    : context.tr('Title is required', 'Kinahanglan ang titulo'),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 initialValue: _category,
-                decoration:
-                    const InputDecoration(labelText: 'Category / Kategorya *'),
+                decoration: InputDecoration(
+                    labelText: context.tr('Category *', 'Kategorya *')),
                 items: AppConstants.listingCategories
                     .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                     .toList(),
@@ -268,16 +286,18 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
                       controller: _priceController,
                       keyboardType: const TextInputType.numberWithOptions(
                           decimal: true),
-                      decoration: const InputDecoration(
-                        labelText: 'Price / Presyo (₱)',
-                        helperText: 'Leave blank if barter only / Ayaw butangi kung baylo lang',
+                      decoration: InputDecoration(
+                        labelText: context.tr('Price (₱)', 'Presyo (₱)'),
+                        helperText: context.tr('Leave blank if barter only',
+                            'Ayaw butangi kung baylo lang'),
                       ),
                       validator: (v) {
                         final raw = v?.trim().replaceAll(',', '') ?? '';
                         if (raw.isEmpty) return null; // barter-only is valid
                         final parsed = num.tryParse(raw);
                         if (parsed == null || parsed <= 0) {
-                          return 'Enter a valid price';
+                          return context.tr(
+                              'Enter a valid price', 'Butangi og saktong presyo');
                         }
                         return null;
                       },
@@ -288,8 +308,8 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
                     flex: 2,
                     child: DropdownButtonFormField<String>(
                       initialValue: _unit,
-                      decoration:
-                          const InputDecoration(labelText: 'Per unit / Matag'),
+                      decoration: InputDecoration(
+                          labelText: context.tr('Per unit', 'Matag')),
                       items: AppConstants.listingUnits
                           .map((u) =>
                               DropdownMenuItem(value: u, child: Text(u)))
@@ -303,9 +323,10 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
               const SizedBox(height: 12),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Open to barter / Pwede i-baylo'),
-                subtitle: const Text(
-                    'Other farmers can propose a trade instead of cash'),
+                title: Text(context.tr('Open to barter', 'Pwede i-baylo')),
+                subtitle: Text(context.tr(
+                    'Other farmers can propose a trade instead of cash',
+                    'Ang ubang mag-uuma makatanyag og baylo imbes kwarta')),
                 value: _openToBarter,
                 onChanged:
                     _busy ? null : (v) => setState(() => _openToBarter = v),
@@ -315,13 +336,18 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
                 controller: _descriptionController,
                 maxLines: 3,
                 textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  labelText: 'Description / Paghulagway (optional)',
-                  hintText: 'Quality, quantity available, pickup notes...',
+                decoration: InputDecoration(
+                  labelText: context.tr(
+                      'Description (optional)', 'Paghulagway (opsyonal)'),
+                  hintText: context.tr(
+                      'Quality, quantity available, pickup notes...',
+                      'Kalidad, pila ang naa, asa kuhaon...'),
                 ),
               ),
               const SizedBox(height: 24),
-              Text('Availability / Kanus-a available (optional)',
+              Text(
+                  context.tr('Availability (optional)',
+                      'Kanus-a available (opsyonal)'),
                   style: theme.textTheme.titleMedium),
               const SizedBox(height: 8),
               Row(
@@ -331,7 +357,7 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
                       onPressed: _busy ? null : () => _pickDate(isFrom: true),
                       icon: const Icon(Icons.event_available),
                       label: Text(_availableFrom == null
-                          ? 'From / Gikan'
+                          ? context.tr('From', 'Gikan')
                           : _dateLabel.format(_availableFrom!)),
                     ),
                   ),
@@ -341,14 +367,17 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
                       onPressed: _busy ? null : () => _pickDate(isFrom: false),
                       icon: const Icon(Icons.event_busy),
                       label: Text(_availableTo == null
-                          ? 'Until / Hangtod'
+                          ? context.tr('Until', 'Hangtod')
                           : _dateLabel.format(_availableTo!)),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-              Text('Photos / Mga litrato (up to ${AppConstants.maxListingPhotos})',
+              Text(
+                  context.tr(
+                      'Photos (up to ${AppConstants.maxListingPhotos})',
+                      'Mga litrato (hangtod ${AppConstants.maxListingPhotos})'),
                   style: theme.textTheme.titleMedium),
               const SizedBox(height: 8),
               Wrap(
@@ -419,7 +448,7 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
                       onPressed:
                           _busy ? null : () => _addPhoto(ImageSource.camera),
                       icon: const Icon(Icons.camera_alt),
-                      label: const Text('Camera'),
+                      label: Text(context.tr('Camera', 'Kamera')),
                     ),
                     OutlinedButton.icon(
                       onPressed:
@@ -445,8 +474,8 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
                         width: 24,
                         child: CircularProgressIndicator(strokeWidth: 2.5))
                     : Text(_editing
-                        ? 'SAVE CHANGES / I-SAVE'
-                        : 'POST LISTING / I-POST'),
+                        ? context.tr('SAVE CHANGES', 'I-SAVE')
+                        : context.tr('POST LISTING', 'I-POST')),
               ),
               const SizedBox(height: 32),
             ],

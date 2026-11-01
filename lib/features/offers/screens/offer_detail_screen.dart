@@ -10,6 +10,7 @@ import '../../profile/widgets/profile_unavailable_banner.dart';
 import '../providers/offer_providers.dart';
 import '../widgets/mark_sold_prompt.dart';
 import '../widgets/negotiation_widgets.dart';
+import '../../../core/l10n/app_language.dart';
 
 /// Live view of one bid negotiation: current amount, full append-only
 /// history, and Accept / Reject / Counter — shown only to the party
@@ -33,7 +34,9 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Action failed / Wala midagan: $e')));
+            SnackBar(
+                content: Text(
+                    '${context.tr('Action failed', 'Wala midagan')}: $e')));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -44,17 +47,18 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Withdraw your offer? / Bawion ang imong tanyag?'),
-        content: const Text('The other party will be told, and this '
-            'negotiation will end. / Mahibal-an sa pikas, ug matapos na '
-            'kini nga tawaran.'),
+        title: Text(context.tr(
+            'Withdraw your offer?', 'Bawion ang imong tanyag?')),
+        content: Text(context.tr(
+            'The other party will be told, and this negotiation will end.',
+            'Mahibal-an sa pikas, ug matapos na kini nga tawaran.')),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('CANCEL')),
+              child: Text(context.tr('CANCEL', 'KANSELAHON'))),
           FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('WITHDRAW / BAWION')),
+              child: Text(context.tr('WITHDRAW', 'BAWION'))),
         ],
       ),
     );
@@ -66,20 +70,20 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
     final amount = await showDialog<num>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Counter offer / Counter nga tanyag'),
+        title: Text(context.tr('Counter offer', 'Counter nga tanyag')),
         content: TextField(
           controller: controller,
           autofocus: true,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
-            labelText: 'New amount (₱) / Bag-ong kantidad',
+          decoration: InputDecoration(
+            labelText: context.tr('New amount (₱)', 'Bag-ong kantidad (₱)'),
             prefixText: '₱ ',
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('CANCEL'),
+            child: Text(context.tr('CANCEL', 'KANSELAHON')),
           ),
           TextButton(
             onPressed: () {
@@ -89,7 +93,7 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
                 Navigator.of(context).pop(parsed);
               }
             },
-            child: const Text('SEND COUNTER / IPADALA'),
+            child: Text(context.tr('SEND COUNTER', 'IPADALA')),
           ),
         ],
       ),
@@ -108,7 +112,7 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bid / Tanyag'),
+        title: Text(context.tr('Bid', 'Tanyag')),
         actions: [
           if (offerAsync.valueOrNull case final offer?
               when uid != null &&
@@ -125,13 +129,15 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => NegotiationListMessage(
           icon: Icons.cloud_off,
-          text: 'Could not load this bid.\n$e',
+          text:
+              '${context.tr('Could not load this bid.', 'Wala ma-load kini nga tanyag.')}\n$e',
         ),
         data: (offer) {
           if (offer == null || uid == null) {
-            return const NegotiationListMessage(
+            return NegotiationListMessage(
               icon: Icons.search_off,
-              text: 'This bid no longer exists. / Wala na kini nga bid.',
+              text: context.tr(
+                  'This bid no longer exists.', 'Wala na kini nga tanyag.'),
             );
           }
           return _body(context, offer, uid);
@@ -151,16 +157,20 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
       padding: const EdgeInsets.all(16),
       children: [
         if (otherHidden) ...[
-          const ProfileUnavailableBanner(
-              detail: 'This bid can no longer be answered.'),
+          ProfileUnavailableBanner(
+              detail: context.tr('This bid can no longer be answered.',
+                  'Dili na matubag kini nga tanyag.')),
           const SizedBox(height: 16),
         ],
-        Text(offer.listingTitle.isEmpty ? 'Listing' : offer.listingTitle,
+        Text(
+            offer.listingTitle.isEmpty
+                ? context.tr('Listing', 'Baligya')
+                : offer.listingTitle,
             style: theme.textTheme.titleLarge),
         const SizedBox(height: 4),
         Text(isBuyer
-            ? 'You are the buyer. / Ikaw ang mopalit.'
-            : 'You are the seller. / Ikaw ang namaligya.'),
+            ? context.tr('You are the buyer.', 'Ikaw ang mopalit.')
+            : context.tr('You are the seller.', 'Ikaw ang namaligya.')),
         const SizedBox(height: 16),
         Card(
           child: Padding(
@@ -168,7 +178,7 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Current offer / Kasamtangang tanyag',
+                Text(context.tr('Current offer', 'Kasamtangang tanyag'),
                     style: theme.textTheme.bodyMedium),
                 const SizedBox(height: 4),
                 Text(pesos(offer.amount),
@@ -188,10 +198,11 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        Text('History / Kasaysayan', style: theme.textTheme.titleMedium),
+        Text(context.tr('History', 'Kasaysayan'),
+            style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         if (offer.history.isEmpty)
-          const Text('No history yet. / Wala pay kasaysayan.')
+          Text(context.tr('No history yet.', 'Wala pay kasaysayan.'))
         else
           for (final entry in offer.history.reversed)
             _HistoryTile(entry: entry, offer: offer, viewerUid: uid),
@@ -206,13 +217,14 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
                     .read(offerControllerProvider)
                     .accept(offer: offer, byUserId: uid)),
             icon: const Icon(Icons.check),
-            label: Text('Accept ${pesos(offer.amount)} / Dawata'),
+            label: Text(context.tr('Accept ${pesos(offer.amount)}',
+                'Dawata ang ${pesos(offer.amount)}')),
           ),
           const SizedBox(height: 12),
           FilledButton.tonalIcon(
             onPressed: _busy ? null : () => _counterDialog(offer, uid),
             icon: const Icon(Icons.swap_vert),
-            label: const Text('Counter / Mag-counter'),
+            label: Text(context.tr('Counter', 'Mag-counter')),
           ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
@@ -222,7 +234,7 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
                     .read(offerControllerProvider)
                     .reject(offer: offer, byUserId: uid)),
             icon: const Icon(Icons.close),
-            label: const Text('Reject / Balibari'),
+            label: Text(context.tr('Reject', 'Balibari')),
           ),
         ] else if (offer.status == OfferStatus.pending ||
             offer.status == OfferStatus.countered) ...[
@@ -230,8 +242,8 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Text(
-                'Waiting for the other party to respond. / Naghulat sa '
-                'tubag sa pikas.',
+                context.tr('Waiting for the other party to respond.',
+                    'Naghulat sa tubag sa pikas.'),
                 style: theme.textTheme.bodyMedium,
               ),
             ),
@@ -248,7 +260,7 @@ class _OfferDetailScreenState extends ConsumerState<OfferDetailScreen> {
                           .withdraw(offer: offer, byUserId: uid));
                     },
               icon: const Icon(Icons.undo),
-              label: const Text('Withdraw my offer / Bawion'),
+              label: Text(context.tr('Withdraw my offer', 'Bawion ang akong tanyag')),
             ),
           ],
         ],
@@ -276,10 +288,10 @@ class _HistoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final who = entry.byUserId == viewerUid
-        ? 'You / Ikaw'
+        ? context.tr('You', 'Ikaw')
         : entry.byUserId == offer.buyerId
-            ? 'Buyer / Pumapalit'
-            : 'Seller / Namaligya';
+            ? context.tr('Buyer', 'Pumapalit')
+            : context.tr('Seller', 'Namaligya');
     final showAmount = entry.action == 'bid' || entry.action == 'counter';
 
     return Card(
@@ -290,7 +302,7 @@ class _HistoryTile extends StatelessWidget {
           'counter' => Icons.swap_vert,
           _ => Icons.gavel,
         }),
-        title: Text('$who ${negotiationActionLabel(entry.action)}'
+        title: Text('$who ${negotiationActionLabel(context.language, entry.action)}'
             '${showAmount ? ' — ${pesos(entry.amount)}' : ''}'),
         subtitle: entry.at == null
             ? null

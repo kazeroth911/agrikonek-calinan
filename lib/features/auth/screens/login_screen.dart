@@ -5,7 +5,9 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/validators.dart';
 import '../../../services/auth_service.dart';
 import '../providers/auth_providers.dart';
+import '../../settings/settings_screen.dart';
 import 'otp_screen.dart';
+import '../../../core/l10n/app_language.dart';
 
 /// Screen 1 of the wireframes: email/password sign-in with an
 /// "Use OTP instead" path. No self-registration by design —
@@ -45,7 +47,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           );
       // Navigation handled by authStateProvider at the app root.
     } catch (e) {
-      if (mounted) setState(() => _error = AuthService.friendlyError(e));
+      if (mounted) {
+        setState(() => _error =
+            AuthService.friendlyError(e, ref.read(languageProvider)));
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -55,6 +60,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
+      // Lets farmers pick English or Cebuano before signing in.
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: const [LanguageMenuButton()],
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -69,7 +80,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       style: theme.textTheme.headlineMedium
                           ?.copyWith(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 4),
-                  Text("Calinan Farmers' Marketplace",
+                  Text(
+                      context.tr("Calinan Farmers' Marketplace",
+                          'Merkado sa mga Mag-uuma sa Calinan'),
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodyLarge),
                   const SizedBox(height: 40),
@@ -85,7 +98,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     controller: _passwordController,
                     obscureText: _obscure,
                     decoration: InputDecoration(
-                      labelText: 'Password / Pasword',
+                      labelText: context.tr('Password', 'Pasword'),
                       suffixIcon: IconButton(
                         icon: Icon(_obscure
                             ? Icons.visibility_off
@@ -109,7 +122,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             width: 24,
                             child:
                                 CircularProgressIndicator(strokeWidth: 2.5))
-                        : const Text('SIGN IN / MO-LOGIN'),
+                        : Text(context.tr('SIGN IN', 'MO-LOGIN')),
                   ),
                   if (AppConstants.enableOtpSignIn) ...[
                     const SizedBox(height: 12),
@@ -118,13 +131,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ? null
                           : () => Navigator.of(context).push(MaterialPageRoute(
                               builder: (_) => const OtpScreen())),
-                      child: const Text('Use OTP instead / Gamita ang OTP'),
+                      child: Text(context.tr('Use OTP instead', 'Gamita ang OTP')),
                     ),
                   ],
                   const SizedBox(height: 32),
                   Text(
-                    'No account? Your researcher will profile you on-site.\n'
-                    'Walay account? Ang researcher mag-profile nimo sa inyong farm.',
+                    context.tr(
+                        'No account? Your researcher will profile you on-site.',
+                        'Walay account? Ang researcher mag-profile nimo sa inyong farm.'),
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodySmall,
                   ),

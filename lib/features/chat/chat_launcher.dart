@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'providers/chat_providers.dart';
 import 'screens/chat_screen.dart';
+import '../../core/l10n/app_language.dart';
 
 /// Opens (or creates) the chat with [otherId] and shows it. Used by the
 /// Message buttons on listings, bids and barters.
@@ -16,6 +17,7 @@ Future<void> openChatWith(
 }) async {
   final navigator = Navigator.of(context);
   final messenger = ScaffoldMessenger.of(context);
+  final failed = context.tr('Could not open chat', 'Dili maablihan ang chat');
   try {
     final conversationId = await ref.read(chatControllerProvider).openChat(
           otherId: otherId,
@@ -28,7 +30,7 @@ Future<void> openChatWith(
     ));
   } catch (error) {
     messenger.showSnackBar(
-      SnackBar(content: Text('Could not open chat / Dili maablihan: $error')),
+      SnackBar(content: Text('$failed: $error')),
     );
   }
 }
@@ -49,7 +51,7 @@ class MessageIconButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return IconButton(
-      tooltip: 'Message / Mensahe',
+      tooltip: context.tr('Message', 'Mensahe'),
       icon: const Icon(Icons.chat_bubble_outline),
       onPressed: () => openChatWith(
         context,

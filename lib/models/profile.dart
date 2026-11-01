@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../core/constants/app_constants.dart';
+import '../core/l10n/app_language.dart';
 
 /// Root entity of the system (Figure 5 of the Capstone paper).
 /// Created by the researcher-admin during field profiling.
@@ -67,11 +68,13 @@ class Profile {
   static const levelVisited = 1;
   static const levelCooperativeConfirmed = 2;
 
-  /// What other users see, per Table 3.4.
-  String? get verificationLabel => switch (verificationLevel) {
-        levelVisited => 'Visited by researchers / Gibisita sa mga researcher',
-        levelCooperativeConfirmed =>
-          'Cooperative-confirmed / Gikumpirma sa kooperatiba',
+  /// What other users see, per Table 3.4, in the chosen language.
+  String? verificationLabelFor(AppLanguage language) =>
+      switch (verificationLevel) {
+        levelVisited =>
+          tr(language, 'Visited by researchers', 'Gibisita sa mga researcher'),
+        levelCooperativeConfirmed => tr(
+            language, 'Cooperative-confirmed', 'Gikumpirma sa kooperatiba'),
         _ => null,
       };
   final DateTime? createdAt;

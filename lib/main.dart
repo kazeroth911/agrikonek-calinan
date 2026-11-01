@@ -5,8 +5,10 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
+import 'core/l10n/app_language.dart';
 import 'firebase_options.dart';
 import 'services/push_notification_service.dart';
 
@@ -41,9 +43,13 @@ Future<void> main() async {
     );
   }
 
+  // Loaded before the first frame so the saved language shows at once.
+  final prefs = await SharedPreferences.getInstance();
+
   runApp(
-    const ProviderScope(
-      child: AgriKonekApp(),
+    ProviderScope(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      child: const AgriKonekApp(),
     ),
   );
 

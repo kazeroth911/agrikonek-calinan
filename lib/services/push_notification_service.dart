@@ -27,6 +27,24 @@ class PushNotificationService {
   /// chat does not also pop up a snackbar.
   String? activeConversationId;
 
+  /// Language code ('en' or 'ceb') saved with this phone's token, so the
+  /// push sender writes notifications in the language the user chose.
+  String _languageCode = 'en';
+
+  /// Called by the app whenever the language setting changes. Re-saves the
+  /// token record so the next push uses the new language.
+  void setLanguage(String code) {
+    if (code == _languageCode) return;
+    _languageCode = code;
+    final user = _auth.currentUser;
+    final token = _registeredToken;
+    if (user != null && token != null && _registeredUid == user.uid) {
+      unawaited(_registerToken(user, token).catchError((Object error) {
+        debugPrint('FCM language update failed: $error');
+      }));
+    }
+  }
+
   String? _currentToken;
   String? _registeredUid;
   String? _registeredToken;
@@ -145,6 +163,7 @@ class PushNotificationService {
       {
         'token': token,
         'platform': 'android',
+        'language': _languageCode,
         'updatedAt': FieldValue.serverTimestamp(),
       },
       SetOptions(merge: true),

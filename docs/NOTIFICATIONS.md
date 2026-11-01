@@ -143,6 +143,6 @@ Use farmer A (seller) and farmer B (buyer) who already have a bid, a barter and 
 
 ## 5. What is not covered yet
 
-- Push and inbox wording is English / Cebuano. The Cebuano still needs a native speaker's check: see `docs/NOTIFICATION_TEXT_CEBUANO.md`.
+- Push and inbox wording is in English or Cebuano, following the language each user picks in Settings (saved with the phone's push token as `language`). The Cebuano still needs a native speaker's check: see `docs/NOTIFICATION_TEXT_CEBUANO.md`.
 - Chat is text only (no photos), and messages cannot be edited or deleted.
 - iOS is not set up.

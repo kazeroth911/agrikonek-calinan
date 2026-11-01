@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/utils/validators.dart';
 import '../../../services/auth_service.dart';
 import '../providers/auth_providers.dart';
+import '../../../core/l10n/app_language.dart';
 
 /// Phone-OTP sign-in for farmers without email addresses (paper §4.6).
 /// Two stages on one screen: enter phone -> enter the 6-digit SMS code.
@@ -51,7 +52,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
           } catch (e) {
             if (mounted) {
               setState(() {
-                _error = AuthService.friendlyError(e);
+                _error = AuthService.friendlyError(e, ref.read(languageProvider));
                 _busy = false;
               });
             }
@@ -62,7 +63,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         onFailed: (e) {
           if (!mounted) return;
           setState(() {
-            _error = AuthService.friendlyError(e);
+            _error = AuthService.friendlyError(e, ref.read(languageProvider));
             _busy = false;
           });
         },
@@ -81,7 +82,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = AuthService.friendlyError(e);
+          _error = AuthService.friendlyError(e, ref.read(languageProvider));
           _busy = false;
         });
       }
@@ -90,7 +91,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
   Future<void> _confirmCode() async {
     if (_codeController.text.trim().length < 6) {
-      setState(() => _error = 'Enter the 6-digit code from the SMS.');
+      setState(() => _error = context.tr('Enter the 6-digit code from the SMS.',
+          'Isulat ang 6 ka numero nga code gikan sa SMS.'));
       return;
     }
     setState(() {
@@ -104,7 +106,10 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
           );
       if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
     } on FirebaseAuthException catch (e) {
-      if (mounted) setState(() => _error = AuthService.friendlyError(e));
+      if (mounted) {
+        setState(() => _error =
+            AuthService.friendlyError(e, ref.read(languageProvider)));
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -114,7 +119,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Sign in with OTP')),
+      appBar: AppBar(
+          title: Text(context.tr('Sign in with OTP', 'Mo-login gamit ang OTP'))),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -124,17 +130,19 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (!_codeStage) ...[
-                  Text('Enter your mobile number. We will send a code by SMS.\n'
-                      'Isulat ang imong numero. Padalhan ka namo og code.',
+                  Text(
+                      context.tr(
+                          'Enter your mobile number. We will send a code by SMS.',
+                          'Isulat ang imong numero. Padalhan ka namo og code.'),
                       style: theme.textTheme.bodyLarge),
                   const SizedBox(height: 24),
                   TextFormField(
                     controller: _phoneController,
                     keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      labelText: 'Mobile number',
+                    decoration: InputDecoration(
+                      labelText: context.tr('Mobile number', 'Numero sa cellphone'),
                       hintText: '09XXXXXXXXX',
-                      prefixIcon: Icon(Icons.phone_android),
+                      prefixIcon: const Icon(Icons.phone_android),
                     ),
                     validator: Validators.phPhone,
                   ),
@@ -147,11 +155,12 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                             width: 24,
                             child:
                                 CircularProgressIndicator(strokeWidth: 2.5))
-                        : const Text('SEND CODE'),
+                        : Text(context.tr('SEND CODE', 'IPADALA ANG CODE')),
                   ),
                 ] else ...[
-                  Text('Enter the 6-digit code sent to your phone.\n'
-                      'Isulat ang 6-digit nga code gikan sa SMS.',
+                  Text(
+                      context.tr('Enter the 6-digit code sent to your phone.',
+                          'Isulat ang 6-digit nga code gikan sa SMS.'),
                       style: theme.textTheme.bodyLarge),
                   const SizedBox(height: 24),
                   TextFormField(
@@ -165,13 +174,14 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                   const SizedBox(height: 24),
                   FilledButton(
                     onPressed: _busy ? null : _confirmCode,
-                    child: const Text('VERIFY & SIGN IN'),
+                    child: Text(context.tr('VERIFY & SIGN IN', 'I-VERIFY UG MO-LOGIN')),
                   ),
                   TextButton(
                     onPressed: _busy
                         ? null
                         : () => setState(() => _verificationId = null),
-                    child: const Text('Change number / re-send code'),
+                    child: Text(context.tr('Change number / re-send code',
+                        'Ilisi ang numero / ipadala pag-usab')),
                   ),
                 ],
                 if (_error != null) ...[

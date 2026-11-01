@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/notification_providers.dart';
 import '../screens/notifications_screen.dart';
+import '../../../core/l10n/app_language.dart';
 
 /// Opens the inbox and shows the Firestore unread count for this user.
 class NotificationBell extends ConsumerWidget {
@@ -12,7 +13,7 @@ class NotificationBell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final count = ref.watch(unreadNotificationCountProvider);
     return IconButton(
-      tooltip: 'Notifications',
+      tooltip: context.tr('Notifications', 'Mga Pahibalo'),
       icon: Badge(
         isLabelVisible: count > 0,
         label: Text(count > 99 ? '99+' : '$count'),

@@ -9,6 +9,7 @@ import '../providers/listing_providers.dart';
 import '../widgets/listing_card.dart';
 import 'listing_detail_screen.dart';
 import 'post_listing_screen.dart';
+import '../../../core/l10n/app_language.dart';
 
 /// Sprint 2 centerpiece: the categorized marketplace feed.
 /// Live Firestore stream + keyword search + category chips, designed
@@ -24,18 +25,18 @@ class MarketplaceScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Calinan Marketplace / Merkado'),
+        title: Text(context.tr('Calinan Marketplace', 'Merkado sa Calinan')),
         actions: [
           const NotificationBell(),
           IconButton(
             icon: const Icon(Icons.person_outline),
-            tooltip: 'My profile / Akong profile',
+            tooltip: context.tr('My profile', 'Akong profile'),
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(
                 builder: (_) => const MyProfileScreen())),
           ),
           IconButton(
             icon: const Icon(Icons.logout),
-            tooltip: 'Sign out',
+            tooltip: context.tr('Sign out', 'Mogawas'),
             onPressed: () => ref.read(authServiceProvider).signOut(),
           ),
         ],
@@ -44,7 +45,7 @@ class MarketplaceScreen extends ConsumerWidget {
         onPressed: () => Navigator.of(context).push(MaterialPageRoute(
             builder: (_) => const PostListingScreen())),
         icon: const Icon(Icons.add),
-        label: const Text('Post / Ibaligya'),
+        label: Text(context.tr('Post', 'Ibaligya')),
       ),
       body: SafeArea(
         child: Column(
@@ -52,15 +53,15 @@ class MarketplaceScreen extends ConsumerWidget {
             if (meHidden)
               MaterialBanner(
                 leading: const Icon(Icons.visibility_off),
-                content: const Text(
-                    'Your profile is hidden. Others cannot see your listings. / '
-                    'Nakatago ang imong profile.'),
+                content: Text(context.tr(
+                    'Your profile is hidden. Others cannot see your listings.',
+                    'Nakatago ang imong profile. Dili makita sa uban ang imong mga baligya.')),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.of(context).push(
                         MaterialPageRoute(
                             builder: (_) => const MyProfileScreen())),
-                    child: const Text('CHANGE / USBA'),
+                    child: Text(context.tr('CHANGE', 'USBA')),
                   ),
                 ],
               ),
@@ -75,17 +76,19 @@ class MarketplaceScreen extends ConsumerWidget {
                     const Center(child: CircularProgressIndicator()),
                 error: (e, _) => _FeedMessage(
                   icon: Icons.cloud_off,
-                  text: 'Could not load the marketplace.\n'
-                      'Wala ma-load ang merkado. Please check your '
-                      'connection and try again.\n\n$e',
+                  text: '${context.tr('Could not load the marketplace. Please check your connection and try again.', 'Wala ma-load ang merkado. Palihug susiha ang imong koneksyon ug sulayi pag-usab.')}\n\n$e',
                 ),
                 data: (listings) {
                   if (listings.isEmpty) {
-                    return const _FeedMessage(
+                    return _FeedMessage(
                       icon: Icons.storefront_outlined,
-                      text: 'No listings found.\nWalay nakit-an nga baligya.\n\n'
-                          'Try another category or search word, or be the '
-                          'first to post!',
+                      text: context.tr(
+                          'No listings found.\n\n'
+                              'Try another category or search word, or be the '
+                              'first to post!',
+                          'Walay nakit-an nga baligya.\n\n'
+                              'Sulayi ang laing kategorya o pulong, o ikaw '
+                              'ang unang mag-post!'),
                     );
                   }
                   return ListView.builder(
@@ -119,9 +122,10 @@ class _SearchField extends ConsumerWidget {
     return TextField(
       onChanged: (v) => ref.read(searchQueryProvider.notifier).state = v,
       textInputAction: TextInputAction.search,
-      decoration: const InputDecoration(
-        prefixIcon: Icon(Icons.search),
-        hintText: 'Search / Pangitaa (e.g. durian, eggs, Wangan)',
+      decoration: InputDecoration(
+        prefixIcon: const Icon(Icons.search),
+        hintText: context.tr('Search (e.g. durian, eggs, Wangan)',
+            'Pangitaa (pananglitan: durian, itlog, Wangan)'),
         isDense: true,
       ),
     );
@@ -144,7 +148,7 @@ class _CategoryChips extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: ChoiceChip(
-              label: const Text('All / Tanan'),
+              label: Text(context.tr('All', 'Tanan')),
               selected: selected == null,
               onSelected: (_) =>
                   ref.read(selectedCategoryProvider.notifier).state = null,

@@ -7,6 +7,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/validators.dart';
 import '../../../models/profile.dart';
 import '../providers/profiling_providers.dart';
+import '../../../core/l10n/app_language.dart';
 
 /// The researcher's profile-preparation form (paper §3.5.4). Captures
 /// identity, products, barter willingness, device/data-plan attributes,
@@ -148,7 +149,8 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
         context: context,
         barrierDismissible: false,
         builder: (context) => AlertDialog(
-          title: const Text('Profile saved (hidden) / Na-save (nakatago)'),
+          title: Text(context.tr(
+              'Profile saved (hidden)', 'Na-save ang profile (nakatago)')),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,20 +185,22 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile a Farmer / I-profile ang Mag-uuma')),
+      appBar: AppBar(
+          title: Text(context.tr('Profile a Farmer', 'I-profile ang Mag-uuma'))),
       body: SafeArea(
         child: Form(
           key: _formKey,
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Text('Identity / Pagkatawo', style: theme.textTheme.titleMedium),
+              Text(context.tr('Identity', 'Pagkatawo'),
+                  style: theme.textTheme.titleMedium),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _nameController,
                 textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                    labelText: 'Full name / Tibuok ngalan *'),
+                decoration: InputDecoration(
+                    labelText: context.tr('Full name *', 'Tibuok ngalan *')),
                 validator: (v) =>
                     Validators.requiredField(v, label: 'Full name'),
               ),
@@ -214,8 +218,9 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
               TextFormField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                    labelText: 'Mobile number / Numero sa cellphone *',
+                decoration: InputDecoration(
+                    labelText:
+                        context.tr('Mobile number *', 'Numero sa cellphone *'),
                     helperText: '09XXXXXXXXX'),
                 validator: (v) => Validators.phPhone(v),
               ),
@@ -223,15 +228,16 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
               TextFormField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: 'Account email / Email sa account *',
+                decoration: InputDecoration(
+                  labelText: context.tr('Account email *', 'Email sa account *'),
                   helperText:
                       'Used for sign-in. A managed address like name.agrikonek@gmail.com works.',
                 ),
                 validator: Validators.email,
               ),
               const SizedBox(height: 24),
-              Text('Roles / Mga papel', style: theme.textTheme.titleMedium),
+              Text(context.tr('Roles', 'Mga papel'),
+                  style: theme.textTheme.titleMedium),
               Wrap(
                 spacing: 8,
                 children: [
@@ -250,26 +256,28 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
                 ],
               ),
               const SizedBox(height: 24),
-              Text('Farm & Products / Uma ug Produkto',
+              Text(context.tr('Farm & Products', 'Uma ug Produkto'),
                   style: theme.textTheme.titleMedium),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _productsController,
-                decoration: const InputDecoration(
-                  labelText: 'Products / Mga produkto (comma-separated)',
+                decoration: InputDecoration(
+                  labelText: context.tr('Products (comma-separated)',
+                      'Mga produkto (bulagon og koma)'),
                   hintText: 'durian, eggs, manure',
                 ),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _farmSizeController,
-                decoration: const InputDecoration(
-                    labelText: 'Approximate farm size, notes / Gidak-on sa uma'),
+                decoration: InputDecoration(
+                    labelText: context.tr('Approximate farm size, notes',
+                        'Gibanabana nga gidak-on sa uma, mga nota')),
               ),
               const SizedBox(height: 12),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Willing to barter? / Andam mo-baylo?'),
+                title: Text(context.tr('Willing to barter?', 'Andam mo-baylo?')),
                 value: _barterWilling,
                 onChanged: (v) => setState(() => _barterWilling = v),
               ),
@@ -282,7 +290,7 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
                   ),
                 ),
               const SizedBox(height: 24),
-              Text('Device & Connectivity / Cellphone ug Internet',
+              Text(context.tr('Device & Connectivity', 'Cellphone ug Internet'),
                   style: theme.textTheme.titleMedium),
               const SizedBox(height: 8),
               TextFormField(
@@ -297,7 +305,7 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
                     labelText: 'Data plan', hintText: 'e.g. prepaid promo, Wi-Fi at home'),
               ),
               const SizedBox(height: 24),
-              Text('Farm Location / Lokasyon sa uma',
+              Text(context.tr('Farm Location', 'Lokasyon sa uma'),
                   style: theme.textTheme.titleMedium),
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
@@ -321,12 +329,12 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
                   OutlinedButton.icon(
                     onPressed: _busy ? null : _captureLocation,
                     icon: const Icon(Icons.my_location),
-                    label: const Text('Capture / Kuhaa'),
+                    label: Text(context.tr('Capture', 'Kuhaa')),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-              Text('Verification / Pag-verify',
+              Text(context.tr('Verification', 'Pag-verify'),
                   style: theme.textTheme.titleMedium),
               const SizedBox(height: 4),
               const Text('Level 1 "Visited by researchers" is recorded for '
@@ -380,7 +388,7 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
                         height: 24,
                         width: 24,
                         child: CircularProgressIndicator(strokeWidth: 2.5))
-                    : const Text('SAVE PROFILE / I-SAVE'),
+                    : Text(context.tr('SAVE PROFILE', 'I-SAVE ANG PROFILE')),
               ),
               const SizedBox(height: 32),
             ],

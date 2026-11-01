@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../models/announcement.dart';
 import '../providers/announcement_providers.dart';
 import 'compose_announcement_screen.dart';
+import '../../../core/l10n/app_language.dart';
 
 /// Researcher-admin view of sent announcements, with a button to write
 /// a new one.
@@ -22,7 +23,7 @@ class AnnouncementsScreen extends ConsumerWidget {
     final sent = ref.watch(sentAnnouncementsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Announcements / Mga Pahibalo')),
+      appBar: AppBar(title: Text(context.tr('Announcements', 'Mga Pahibalo'))),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
             builder: (_) => const ComposeAnnouncementScreen())),

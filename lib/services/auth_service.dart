@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'push_notification_service.dart';
+import '../core/l10n/app_language.dart';
 
 /// Thin wrapper over FirebaseAuth so screens never touch the SDK directly.
 class AuthService {
@@ -57,31 +58,44 @@ class AuthService {
     await _auth.signOut();
   }
 
-  /// Maps FirebaseAuth error codes to farmer-friendly messages.
-  static String friendlyError(Object error) {
+  /// Maps FirebaseAuth error codes to farmer-friendly messages in the
+  /// chosen language.
+  static String friendlyError(Object error,
+      [AppLanguage language = AppLanguage.english]) {
+    String t(String en, String ceb) => tr(language, en, ceb);
     if (error is FirebaseAuthException) {
       switch (error.code) {
         case 'invalid-credential':
         case 'wrong-password':
         case 'user-not-found':
-          return 'Email or password is incorrect. / Sayop ang email o password.';
+          return t('Email or password is incorrect.',
+              'Sayop ang email o password.');
         case 'invalid-email':
-          return 'That email address is not valid.';
+          return t('That email address is not valid.',
+              'Dili husto ang email address.');
         case 'too-many-requests':
-          return 'Too many attempts. Please wait a moment and try again.';
+          return t('Too many attempts. Please wait a moment and try again.',
+              'Daghan na kaayo nga pagsulay. Paghulat kadiyot ug sulayi pag-usab.');
         case 'network-request-failed':
-          return 'No internet connection. / Walay koneksyon sa internet.';
+          return t('No internet connection.', 'Walay koneksyon sa internet.');
         case 'invalid-verification-code':
-          return 'The code you entered is incorrect. Please check the SMS.';
+          return t('The code you entered is incorrect. Please check the SMS.',
+              'Sayop ang code. Tan-awa pag-usab ang SMS.');
         case 'email-already-in-use':
-          return 'That email already has an account. Use a different email '
-              'for this farmer.';
+          return t(
+              'That email already has an account. Use a different email '
+                  'for this farmer.',
+              'Naa nay account kini nga email. Gamit og laing email para '
+                  'niini nga mag-uuma.');
         case 'weak-password':
-          return 'That password is too weak. Use at least 6 characters.';
+          return t('That password is too weak. Use at least 6 characters.',
+              'Huyang kaayo ang password. Gamit og labing menos 6 ka karakter.');
         default:
-          return 'Sign-in failed (${error.code}). Please try again.';
+          return t('Sign-in failed (${error.code}). Please try again.',
+              'Wala nakasulod (${error.code}). Sulayi pag-usab.');
       }
     }
-    return 'Something went wrong. Please try again.';
+    return t('Something went wrong. Please try again.',
+        'Naay problema. Sulayi pag-usab.');
   }
 }

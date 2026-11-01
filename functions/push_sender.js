@@ -7,7 +7,7 @@
 
 "use strict";
 
-const {describe} = require("./notification_text");
+const {describe, normalizeLanguage} = require("./notification_text");
 
 // Must match the channel created in android/.../MainActivity.kt.
 const ANDROID_CHANNEL_ID = "agrikonek_alerts";
@@ -54,7 +54,6 @@ async function sendPushForNotification(ref, notificationId, data, deps) {
     return "no_device";
   }
 
-  const {title, body} = describe(type, payload);
   const linkData = {notificationId, type};
   for (const key of LINK_KEYS) {
     if (typeof payload[key] === "string" && payload[key] !== "") {
@@ -62,43 +61,59 @@ async function sendPushForNotification(ref, notificationId, data, deps) {
     }
   }
 
-  const response = await messaging.sendEachForMulticast({
-    tokens: tokenDocs.map((d) => d.get("token")),
-    notification: {title, body},
-    data: linkData,
-    android: {
-      priority: "high",
-      notification: {channelId: ANDROID_CHANNEL_ID},
-    },
-  });
+  // Each phone saved the language chosen in the app's Settings with its
+  // token. Send one batch per language so every phone gets its own wording.
+  const byLanguage = new Map();
+  for (const doc of tokenDocs) {
+    const language = normalizeLanguage(doc.get("language"));
+    if (!byLanguage.has(language)) byLanguage.set(language, []);
+    byLanguage.get(language).push(doc);
+  }
 
-  // Remove registrations for uninstalled apps or expired tokens.
+  let successCount = 0;
+  let failureCount = 0;
   const deletions = [];
-  response.responses.forEach((r, i) => {
-    if (!r.success) {
-      const code = r.error && r.error.code;
-      log.warn("FCM send failed", {notificationId, code});
-      if (DEAD_TOKEN_CODES.has(code)) deletions.push(tokenDocs[i].ref.delete());
-    }
-  });
+  for (const [language, docs] of byLanguage) {
+    const {title, body} = describe(type, payload, language);
+    const response = await messaging.sendEachForMulticast({
+      tokens: docs.map((d) => d.get("token")),
+      notification: {title, body},
+      data: linkData,
+      android: {
+        priority: "high",
+        notification: {channelId: ANDROID_CHANNEL_ID},
+      },
+    });
+    successCount += response.successCount;
+    failureCount += response.failureCount;
+
+    // Remove registrations for uninstalled apps or expired tokens.
+    response.responses.forEach((r, i) => {
+      if (!r.success) {
+        const code = r.error && r.error.code;
+        log.warn("FCM send failed", {notificationId, code});
+        if (DEAD_TOKEN_CODES.has(code)) deletions.push(docs[i].ref.delete());
+      }
+    });
+  }
   await Promise.all(deletions);
 
   // Delivery result kept on the record for testing evidence.
   // Admin SDK writes bypass the security rules, so the recipient-only
   // update rule is unaffected.
-  const pushStatus = response.successCount > 0 ? "sent" : "failed";
+  const pushStatus = successCount > 0 ? "sent" : "failed";
   await ref.update({
     pushStatus,
-    pushSuccessCount: response.successCount,
-    pushFailureCount: response.failureCount,
+    pushSuccessCount: successCount,
+    pushFailureCount: failureCount,
     pushedAt: serverTimestamp(),
   });
 
   log.info("Push processed", {
     notificationId,
     type,
-    sent: response.successCount,
-    failed: response.failureCount,
+    sent: successCount,
+    failed: failureCount,
     pruned: deletions.length,
   });
   return pushStatus;

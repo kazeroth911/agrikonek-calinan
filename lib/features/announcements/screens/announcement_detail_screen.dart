@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../providers/announcement_providers.dart';
+import '../../../core/l10n/app_language.dart';
 
 /// Full text of an announcement for the farmer who received it. Opened
 /// from the inbox (text already known) or from a tapped push (loaded
@@ -31,15 +32,20 @@ class AnnouncementDetailScreen extends ConsumerWidget {
       loading: () => const Scaffold(
           body: Center(child: CircularProgressIndicator())),
       error: (error, _) => Scaffold(
-        appBar: AppBar(title: const Text('Announcement / Pahibalo')),
-        body: Center(child: Text('Could not load this announcement.\n$error',
-            textAlign: TextAlign.center)),
+        appBar: AppBar(title: Text(context.tr('Announcement', 'Pahibalo'))),
+        body: Center(
+            child: Text(
+                '${context.tr('Could not load this announcement.', 'Wala ma-load kini nga pahibalo.')}\n$error',
+                textAlign: TextAlign.center)),
       ),
       data: (notification) => notification == null
           ? Scaffold(
-              appBar: AppBar(title: const Text('Announcement / Pahibalo')),
-              body: const Center(
-                  child: Text('This announcement is no longer available.')),
+              appBar:
+                  AppBar(title: Text(context.tr('Announcement', 'Pahibalo'))),
+              body: Center(
+                  child: Text(context.tr(
+                      'This announcement is no longer available.',
+                      'Wala na kini nga pahibalo.'))),
             )
           : _AnnouncementView(
               payload: notification.payload,
@@ -58,7 +64,9 @@ class _AnnouncementView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final title = (payload['title'] ?? 'AgriKonek announcement').toString();
+    final title = (payload['title'] ??
+            context.tr('AgriKonek announcement', 'Pahibalo sa AgriKonek'))
+        .toString();
     final body = (payload['body'] ?? '').toString();
     final sender = (payload['senderName'] ?? '').toString();
     final when = createdAt == null
@@ -66,7 +74,7 @@ class _AnnouncementView extends StatelessWidget {
         : DateFormat('MMMM d, y · h:mm a').format(createdAt!.toLocal());
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Announcement / Pahibalo')),
+      appBar: AppBar(title: Text(context.tr('Announcement', 'Pahibalo'))),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -76,7 +84,11 @@ class _AnnouncementView extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  [if (sender.isNotEmpty) 'From $sender', if (when.isNotEmpty) when]
+                  [
+                    if (sender.isNotEmpty)
+                      context.tr('From $sender', 'Gikan kang $sender'),
+                    if (when.isNotEmpty) when,
+                  ]
                       .join(' · '),
                   style: theme.textTheme.bodySmall,
                 ),

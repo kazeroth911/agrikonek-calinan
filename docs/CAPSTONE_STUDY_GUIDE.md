@@ -4,7 +4,7 @@
 
 **Basis of this guide:** direct review of the Flutter/Firebase repository on 5 August 2026, successful execution of all 49 automated tests, successful Flutter static analysis, and selected government, academic, and official technical sources.
 
-> **Status update, 23 October 2026.** Since this guide was first written, the repository gained push notifications (a Cloud Function, run from a laptop relay while the project stays on the Spark plan), an in-app notification center, one-to-one chat, researcher announcements, profile hiding, English/Cebuano notification wording, a "My listings" screen with listing editing, and hardened Firestore and Storage security rules with their own emulator tests. Phone-OTP sign-in is switched off for the pilot. Statements below marked *(updated 23 Oct)* reflect this. Test counts still say 49 where they describe the 5 August run; replace them with the current `flutter test`, `npm test` (functions) and rules-test totals once those are re-run.
+> **Status update, 23 October 2026.** Since this guide was first written, the repository gained push notifications (a Cloud Function, run from a laptop relay while the project stays on the Spark plan), an in-app notification center, one-to-one chat, researcher announcements, profile hiding, a Settings screen where each user picks English or Cebuano for the whole app and their phone notifications, a "My listings" screen with listing editing, and hardened Firestore and Storage security rules with their own emulator tests. Phone-OTP sign-in is switched off for the pilot. Statements below marked *(updated 23 Oct)* reflect this. Test counts still say 49 where they describe the 5 August run; replace them with the current `flutter test`, `npm test` (functions) and rules-test totals once those are re-run.
 
 > **Important thesis-integrity note:** The repository contains the application but not the approved manuscript, survey instrument, respondent dataset, usability results, or complete field-test records. Statements about farmer income, market access improvement, acceptance, effectiveness, or respondent satisfaction must therefore use the actual thesis data. Do not invent percentages or claim that the app improved livelihoods based only on software tests.
 
@@ -387,7 +387,7 @@ Table 6 should be introduced in the discussion: **“Table 6 distinguishes demon
 
 | Feature | Evidence-based status | Discussion |
 |---|---|---|
-| Email/password sign-in | Implemented | Error messages are translated into simpler English/Cebuano-style guidance. |
+| Email/password sign-in | Implemented | Error messages are shown in plain English or Cebuano, following the language picked on the sign-in screen or in Settings. |
 | Phone OTP | Switched off for the pilot *(updated 23 Oct)* | Researcher-made accounts use email; SMS sign-in would create a separate, empty account until phone numbers are linked in the separately consented account-claiming phase. |
 | Researcher-led profiling | Implemented | Captures roles, products, barter preference, device/data plan, consent, optional GPS/photos. |
 | Role routing | Implemented | Admins and non-admin users receive different home interfaces. |

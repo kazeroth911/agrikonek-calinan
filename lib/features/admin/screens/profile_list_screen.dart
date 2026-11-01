@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/profile.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../providers/profiling_providers.dart';
+import '../../../core/l10n/app_language.dart';
 
 /// Read-back half of the Sprint 1 vertical slice: every saved
 /// profile streams live from Firestore into this list.
@@ -84,7 +85,7 @@ class ProfileListScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-          title: const Text('Profiled Accounts / Mga na-profile')),
+          title: Text(context.tr('Profiled Accounts', 'Mga na-profile'))),
       body: profilesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Could not load profiles:\n$e')),
@@ -106,7 +107,7 @@ class ProfileListScreen extends ConsumerWidget {
                 title: Text(p.hidden ? '${p.fullName} (hidden)' : p.fullName),
                 subtitle: Text(
                     '${p.barangay} • ${p.roles.join(", ")}\n'
-                    '${p.isAdmin ? 'Researcher-admin' : (p.verificationLabel ?? 'Verification level not recorded')}'
+                    '${p.isAdmin ? 'Researcher-admin' : (p.verificationLabelFor(context.language) ?? 'Verification level not recorded')}'
                     '${p.products.isEmpty ? '' : '\n${p.products.join(", ")}'}'),
                 isThreeLine: true,
                 onTap: p.isAdmin ? null : () => _setLevel(context, ref, p),

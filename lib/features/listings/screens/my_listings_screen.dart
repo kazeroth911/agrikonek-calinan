@@ -7,18 +7,25 @@ import '../providers/listing_providers.dart';
 import '../widgets/listing_card.dart' show listingPriceLabel;
 import 'listing_detail_screen.dart';
 import 'post_listing_screen.dart';
+import '../../../core/l10n/app_language.dart';
 
 /// The signed-in farmer's own listings, open and closed, so they can be
 /// edited, re-opened or deleted even after they leave the marketplace.
 class MyListingsScreen extends ConsumerWidget {
   const MyListingsScreen({super.key});
 
-  static const activeLabel = 'Active / Aktibo';
+  static bool isActive(Listing l, DateTime now) =>
+      l.status != ListingStatus.closed &&
+      ListingRepository.isOpenForFeed(l, now);
 
-  static String statusLabel(Listing l, DateTime now) {
-    if (l.status == ListingStatus.closed) return 'Sold / Nabaligya';
-    if (!ListingRepository.isOpenForFeed(l, now)) return 'Expired / Lapas na';
-    return activeLabel;
+  static String statusLabel(Listing l, DateTime now, AppLanguage language) {
+    if (l.status == ListingStatus.closed) {
+      return tr(language, 'Sold', 'Nabaligya');
+    }
+    if (!ListingRepository.isOpenForFeed(l, now)) {
+      return tr(language, 'Expired', 'Lapas na');
+    }
+    return tr(language, 'Active', 'Aktibo');
   }
 
   @override
@@ -27,30 +34,31 @@ class MyListingsScreen extends ConsumerWidget {
     final now = DateTime.now();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My listings / Akong mga baligya')),
+      appBar: AppBar(title: Text(context.tr('My listings', 'Akong mga baligya'))),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
             builder: (_) => const PostListingScreen())),
         icon: const Icon(Icons.add),
-        label: const Text('Post / Ibaligya'),
+        label: Text(context.tr('Post', 'Ibaligya')),
       ),
       body: listings.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Text('Could not load your listings.\n$error',
+            child: Text(
+                '${context.tr('Could not load your listings.', 'Wala ma-load ang imong mga baligya.')}\n$error',
                 textAlign: TextAlign.center),
           ),
         ),
         data: (items) {
           if (items.isEmpty) {
-            return const Center(
+            return Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Text(
-                    'You have not posted anything yet.\n'
-                    'Wala pa kay gi-post nga baligya.',
+                    context.tr('You have not posted anything yet.',
+                        'Wala pa kay gi-post nga baligya.'),
                     textAlign: TextAlign.center),
               ),
             );
@@ -60,16 +68,17 @@ class MyListingsScreen extends ConsumerWidget {
             itemCount: items.length,
             itemBuilder: (context, index) {
               final l = items[index];
-              final status = statusLabel(l, now);
+              final status = statusLabel(l, now, context.language);
               return Card(
                 child: ListTile(
-                  leading: Icon(status == activeLabel
+                  leading: Icon(isActive(l, now)
                       ? Icons.storefront
                       : Icons.inventory_2_outlined),
                   title: Text(l.title),
-                  subtitle: Text('${listingPriceLabel(l)} · $status'),
+                  subtitle: Text(
+                      '${listingPriceLabel(l, context.language)} · $status'),
                   trailing: IconButton(
-                    tooltip: 'Edit',
+                    tooltip: context.tr('Edit', 'Usba'),
                     icon: const Icon(Icons.edit_outlined),
                     onPressed: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(

@@ -7,6 +7,7 @@ import '../../../models/profile.dart';
 import '../../admin/providers/profiling_providers.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../providers/announcement_providers.dart';
+import '../../../core/l10n/app_language.dart';
 
 /// Researcher-admin writes a notice and chooses who receives it.
 class ComposeAnnouncementScreen extends ConsumerStatefulWidget {
@@ -122,9 +123,9 @@ class _ComposeAnnouncementScreenState
               controller: _title,
               maxLength: Announcement.maxTitleLength,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                labelText: 'Title / Ulohan',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: context.tr('Title', 'Ulohan'),
+                border: const OutlineInputBorder(),
               ),
               validator: (v) =>
                   (v == null || v.trim().isEmpty) ? 'Enter a title' : null,
@@ -136,10 +137,10 @@ class _ComposeAnnouncementScreenState
               minLines: 4,
               maxLines: 8,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                labelText: 'Message / Mensahe',
+              decoration: InputDecoration(
+                labelText: context.tr('Message', 'Mensahe'),
                 alignLabelWithHint: true,
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
               ),
               validator: (v) =>
                   (v == null || v.trim().isEmpty) ? 'Enter a message' : null,

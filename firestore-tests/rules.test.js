@@ -455,3 +455,29 @@ describe("verification levels (Table 3.4)", () => {
     await assertFails(getDoc(doc(db(BUYER), "profiles", "new1")));
   });
 });
+
+// ---------------------------------------------------------------------------
+describe("push tokens and their language", () => {
+  const token = (extra = {}) => ({
+    token: "fcm-token", platform: "android", updatedAt: serverTimestamp(), ...extra,
+  });
+
+  it("a user can save their own token in English or Cebuano", async () => {
+    await assertSucceeds(setDoc(doc(db(BUYER), "deviceTokens", BUYER, "tokens", "t1"),
+      token({language: "ceb"})));
+    await assertSucceeds(setDoc(doc(db(BUYER), "deviceTokens", BUYER, "tokens", "t2"),
+      token({language: "en"})));
+    await assertSucceeds(setDoc(doc(db(BUYER), "deviceTokens", BUYER, "tokens", "t3"),
+      token()));
+  });
+
+  it("an unknown language is refused", async () => {
+    await assertFails(setDoc(doc(db(BUYER), "deviceTokens", BUYER, "tokens", "t4"),
+      token({language: "fr"})));
+  });
+
+  it("nobody can save a token under someone else's account", async () => {
+    await assertFails(setDoc(doc(db(OTHER), "deviceTokens", BUYER, "tokens", "t5"),
+      token({language: "en"})));
+  });
+});

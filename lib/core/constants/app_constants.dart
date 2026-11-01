@@ -28,6 +28,7 @@ class AppConstants {
 
   /// Shown wherever a hidden profile would otherwise appear.
   static const profileUnavailable = 'This profile is unavailable.';
+  static const profileUnavailableCeb = 'Dili na makita kini nga profile.';
 
   /// Roles supported by the multi-role account model.
   static const roleSeller = 'seller';

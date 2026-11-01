@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../models/profile.dart';
+import '../../../core/l10n/app_language.dart';
 
 /// Shows a profile's verification level as Table 3.4 of the paper words
 /// it: level 1 "Visited by researchers", level 2 "Cooperative-confirmed".
@@ -16,13 +17,13 @@ class VerificationBadge extends StatelessWidget {
     final (IconData icon, String label, Color bg, Color fg) = switch (level) {
       Profile.levelCooperativeConfirmed => (
           Icons.verified,
-          'Cooperative-confirmed / Gikumpirma sa kooperatiba',
+          context.tr('Cooperative-confirmed', 'Gikumpirma sa kooperatiba'),
           scheme.primaryContainer,
           scheme.onPrimaryContainer,
         ),
       Profile.levelVisited => (
           Icons.how_to_reg,
-          'Visited by researchers / Gibisita sa mga researcher',
+          context.tr('Visited by researchers', 'Gibisita sa mga researcher'),
           scheme.secondaryContainer,
           scheme.onSecondaryContainer,
         ),

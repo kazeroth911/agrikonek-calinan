@@ -7,6 +7,7 @@ import '../../auth/providers/auth_providers.dart';
 import '../notification_router.dart';
 import '../notification_text.dart';
 import '../providers/notification_providers.dart';
+import '../../../core/l10n/app_language.dart';
 
 /// In-app notification center. It lists the Firestore records; the phone
 /// push for each record is sent separately by the Cloud Function.
@@ -37,7 +38,9 @@ class NotificationsScreen extends ConsumerWidget {
     } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not mark notification read: $error')),
+          SnackBar(
+              content: Text(
+                  '${context.tr('Could not mark notification read', 'Wala ma-markahan nga nabasa')}: $error')),
         );
       }
     }
@@ -67,7 +70,9 @@ class NotificationsScreen extends ConsumerWidget {
     } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not mark all as read: $error')),
+          SnackBar(
+              content: Text(
+                  '${context.tr('Could not mark all as read', 'Wala ma-markahan nga nabasa tanan')}: $error')),
         );
       }
     }
@@ -80,11 +85,11 @@ class NotificationsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notifications / Mga Pahibalo'),
+        title: Text(context.tr('Notifications', 'Mga Pahibalo')),
         actions: [
           if (unreadCount > 0)
             IconButton(
-              tooltip: 'Mark all as read',
+              tooltip: context.tr('Mark all as read', 'Markahi tanan nga nabasa'),
               icon: const Icon(Icons.done_all),
               onPressed: () => _markAllRead(
                 context,
@@ -99,16 +104,18 @@ class NotificationsScreen extends ConsumerWidget {
         error: (error, _) => Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Text('Could not load notifications.\n$error',
+            child: Text(
+                '${context.tr('Could not load notifications.', 'Wala ma-load ang mga pahibalo.')}\n$error',
                 textAlign: TextAlign.center),
           ),
         ),
         data: (items) {
           if (items.isEmpty) {
-            return const Center(
+            return Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text('No notifications yet.\nWala pay mga pahibalo.',
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                    context.tr('No notifications yet.', 'Wala pay mga pahibalo.'),
                     textAlign: TextAlign.center),
               ),
             );
@@ -118,10 +125,10 @@ class NotificationsScreen extends ConsumerWidget {
             itemCount: items.length,
             itemBuilder: (context, index) {
               final notification = items[index];
-              final text = NotificationText.describe(
-                  notification.type, notification.payload);
+              final text = NotificationText.describe(notification.type,
+                  notification.payload, context.language);
               final when = notification.createdAt == null
-                  ? 'Just now'
+                  ? context.tr('Just now', 'Karon lang')
                   : DateFormat('MMM d, h:mm a')
                       .format(notification.createdAt!.toLocal());
 

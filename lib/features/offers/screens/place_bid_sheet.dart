@@ -6,6 +6,7 @@ import '../../../models/offer.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../providers/offer_providers.dart';
 import '../widgets/negotiation_widgets.dart';
+import '../../../core/l10n/app_language.dart';
 
 /// Opens the Place Bid bottom sheet from the listing detail screen.
 Future<void> showPlaceBidSheet(BuildContext context, Listing listing) {
@@ -82,16 +83,19 @@ class _PlaceBidSheetState extends ConsumerState<PlaceBidSheet> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Send this offer? / Ipadala ang tanyag?'),
-        content: Text('${pesos(amount)} for "${widget.listing.title}".\n'
-            'The seller will be notified. / Pahibal-on ang namaligya.'),
+        title: Text(context.tr('Send this offer?', 'Ipadala ang tanyag?')),
+        content: Text(context.tr(
+            '${pesos(amount)} for "${widget.listing.title}".\n'
+                'The seller will be notified.',
+            '${pesos(amount)} para sa "${widget.listing.title}".\n'
+                'Pahibal-on ang namaligya.')),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('CANCEL')),
+              child: Text(context.tr('CANCEL', 'KANSELAHON'))),
           FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('SEND / IPADALA')),
+              child: Text(context.tr('SEND', 'IPADALA'))),
         ],
       ),
     );
@@ -122,11 +126,14 @@ class _PlaceBidSheetState extends ConsumerState<PlaceBidSheet> {
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(existing == null
-            ? 'Bid sent! / Napadala na ang bid!'
-            : 'Bid updated! / Na-usab na ang bid!'),
+            ? context.tr('Bid sent!', 'Napadala na ang tanyag!')
+            : context.tr('Bid updated!', 'Na-usab na ang tanyag!')),
       ));
     } catch (e) {
-      setState(() => _error = 'Could not send bid: $e');
+      if (mounted) {
+        setState(() => _error =
+            '${tr(ref.read(languageProvider), 'Could not send bid', 'Wala napadala ang tanyag')}: $e');
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -148,13 +155,13 @@ class _PlaceBidSheetState extends ConsumerState<PlaceBidSheet> {
             shrinkWrap: true,
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
             children: [
-              Text('Place a Bid / Mag-bid',
+              Text(context.tr('Place a Bid', 'Mag-bid'),
                   style: theme.textTheme.titleLarge),
               const SizedBox(height: 4),
               Text(widget.listing.title, style: theme.textTheme.bodyLarge),
               if (widget.listing.price != null)
                 Text(
-                  'Asking price: ${pesos(widget.listing.price!)}'
+                  '${context.tr('Asking price', 'Presyo nga gipangayo')}: ${pesos(widget.listing.price!)}'
                   '${widget.listing.unit == null ? '' : ' / ${widget.listing.unit}'}',
                   style: theme.textTheme.bodyMedium,
                 ),
@@ -174,11 +181,15 @@ class _PlaceBidSheetState extends ConsumerState<PlaceBidSheet> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    'You already have an open bid of '
-                    '${pesos(existing.amount)} '
-                    '(${negotiationStatusLabel(existing.status.name)}).\n'
-                    'Sending a new amount will update it. / Naa na kay '
-                    'bid — ma-usab kini.',
+                    context.tr(
+                        'You already have an open bid of '
+                            '${pesos(existing.amount)} '
+                            '(${negotiationStatusLabel(context.language, existing.status.name)}).\n'
+                            'Sending a new amount will update it.',
+                        'Naa na kay bukas nga tanyag nga '
+                            '${pesos(existing.amount)} '
+                            '(${negotiationStatusLabel(context.language, existing.status.name)}).\n'
+                            'Kung magpadala ka og bag-ong kantidad, ma-usab kini.'),
                     style: theme.textTheme.bodyMedium,
                   ),
                 ),
@@ -187,15 +198,16 @@ class _PlaceBidSheetState extends ConsumerState<PlaceBidSheet> {
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
                 autofocus: true,
-                decoration: const InputDecoration(
-                  labelText: 'Your offer (₱) / Imong tanyag *',
+                decoration: InputDecoration(
+                  labelText: context.tr('Your offer (₱) *', 'Imong tanyag (₱) *'),
                   prefixText: '₱ ',
                 ),
                 validator: (v) {
                   final raw = v?.trim().replaceAll(',', '') ?? '';
                   final parsed = num.tryParse(raw);
                   if (parsed == null || parsed <= 0) {
-                    return 'Enter a valid amount / Butangi og saktong kantidad';
+                    return context.tr('Enter a valid amount',
+                        'Butangi og saktong kantidad');
                   }
                   return null;
                 },
@@ -205,9 +217,10 @@ class _PlaceBidSheetState extends ConsumerState<PlaceBidSheet> {
                 TextFormField(
                   controller: _messageController,
                   textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(
-                    labelText: 'Message (optional) / Mensahe',
-                    hintText: 'e.g. Can I pick up on Saturday?',
+                  decoration: InputDecoration(
+                    labelText: context.tr('Message (optional)', 'Mensahe (opsyonal)'),
+                    hintText: context.tr('e.g. Can I pick up on Saturday?',
+                        'pananglitan: Pwede ko mokuha sa Sabado?'),
                   ),
                 ),
               ],
@@ -226,8 +239,8 @@ class _PlaceBidSheetState extends ConsumerState<PlaceBidSheet> {
                         width: 24,
                         child: CircularProgressIndicator(strokeWidth: 2.5))
                     : Text(existing == null
-                        ? 'SEND BID / IPADALA'
-                        : 'UPDATE BID / USBA'),
+                        ? context.tr('SEND BID', 'IPADALA')
+                        : context.tr('UPDATE BID', 'USBA')),
               ),
             ],
           ),

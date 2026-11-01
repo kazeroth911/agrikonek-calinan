@@ -22,6 +22,7 @@ import '../providers/listing_providers.dart';
 import '../widgets/listing_card.dart' show listingPriceLabel;
 import '../widgets/listing_map_preview.dart';
 import 'post_listing_screen.dart';
+import '../../../core/l10n/app_language.dart';
 
 /// Full listing view: photo gallery, price, farmer info with barangay,
 /// straight-line distance preview (display only, per panel decision),
@@ -37,21 +38,22 @@ class ListingDetailScreen extends ConsumerWidget {
     final listingAsync = ref.watch(listingDetailProvider(listingId));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Listing / Baligya')),
+      appBar: AppBar(title: Text(context.tr('Listing', 'Baligya'))),
       body: listingAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Text('Could not load this listing.\n$e',
+            child: Text(
+                '${context.tr('Could not load this listing.', 'Wala ma-load kini nga baligya.')}\n$e',
                 textAlign: TextAlign.center),
           ),
         ),
         data: (listing) {
           if (listing == null) {
-            return const Center(
-                child: Text('This listing has been removed. / '
-                    'Wala na kini nga baligya.'));
+            return Center(
+                child: Text(context.tr('This listing has been removed.',
+                    'Wala na kini nga baligya.')));
           }
           return _ListingDetailBody(listing: listing);
         },
@@ -76,10 +78,12 @@ class _ListingDetailBody extends ConsumerWidget {
     final forBarter = listing.modes.contains(ListingMode.barter);
 
     if (!isOwner && ref.watch(isProfileHiddenProvider(listing.ownerId))) {
-      return const Column(
+      return Column(
         children: [
           ProfileUnavailableBanner(
-              detail: 'This listing is no longer shown in the marketplace.'),
+              detail: context.tr(
+                  'This listing is no longer shown in the marketplace.',
+                  'Dili na makita kini nga baligya sa merkado.')),
         ],
       );
     }
@@ -102,13 +106,13 @@ class _ListingDetailBody extends ConsumerWidget {
                     color: theme.colorScheme.errorContainer,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text(
-                      'This listing is closed. / Sirado na kini nga baligya.'),
+                  child: Text(context.tr('This listing is closed.',
+                      'Sirado na kini nga baligya.')),
                 ),
               Text(listing.title, style: theme.textTheme.headlineSmall),
               const SizedBox(height: 8),
               Text(
-                listingPriceLabel(listing),
+                listingPriceLabel(listing, context.language),
                 style: theme.textTheme.titleLarge?.copyWith(
                   color: theme.colorScheme.primary,
                   fontWeight: FontWeight.w700,
@@ -120,7 +124,9 @@ class _ListingDetailBody extends ConsumerWidget {
                 children: [
                   Chip(label: Text(listing.category)),
                   if (forBarter)
-                    const Chip(label: Text('Open to barter / Baylo')),
+                    Chip(
+                        label: Text(
+                            context.tr('Open to barter', 'Pwede i-baylo'))),
                 ],
               ),
               if (listing.availableFrom != null ||
@@ -131,7 +137,7 @@ class _ListingDetailBody extends ConsumerWidget {
                     const Icon(Icons.event, size: 20),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(_availabilityLabel(),
+                      child: Text(_availabilityLabel(context.language),
                           style: theme.textTheme.bodyMedium),
                     ),
                   ],
@@ -139,7 +145,8 @@ class _ListingDetailBody extends ConsumerWidget {
               ],
               if (listing.description.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                Text('Details', style: theme.textTheme.titleMedium),
+                Text(context.tr('Details', 'Detalye'),
+                    style: theme.textTheme.titleMedium),
                 const SizedBox(height: 4),
                 Text(listing.description),
               ],
@@ -164,14 +171,19 @@ class _ListingDetailBody extends ConsumerWidget {
     );
   }
 
-  String _availabilityLabel() {
+  String _availabilityLabel(AppLanguage language) {
     final from = listing.availableFrom;
     final to = listing.availableTo;
     if (from != null && to != null) {
-      return 'Available ${_dateLabel.format(from)} – ${_dateLabel.format(to)}';
+      final range = '${_dateLabel.format(from)} – ${_dateLabel.format(to)}';
+      return tr(language, 'Available $range', 'Available sa $range');
     }
-    if (from != null) return 'Available from ${_dateLabel.format(from)}';
-    return 'Available until ${_dateLabel.format(to!)}';
+    if (from != null) {
+      final date = _dateLabel.format(from);
+      return tr(language, 'Available from $date', 'Available gikan sa $date');
+    }
+    final date = _dateLabel.format(to!);
+    return tr(language, 'Available until $date', 'Available hangtod sa $date');
   }
 }
 
@@ -261,14 +273,18 @@ class _FarmerCard extends ConsumerWidget {
                     ],
                   ),
                   distanceAsync.when(
-                    loading: () => Text('Checking distance...',
+                    loading: () => Text(
+                        context.tr('Checking distance...', 'Ginasukod ang gilay-on...'),
                         style: theme.textTheme.bodySmall),
                     error: (_, __) => const SizedBox.shrink(),
                     data: (km) => km == null
                         ? const SizedBox.shrink()
                         : Text(
-                            '≈ ${km.toStringAsFixed(1)} km from you '
-                            '(straight-line)',
+                            context.tr(
+                                '≈ ${km.toStringAsFixed(1)} km from you '
+                                    '(straight-line)',
+                                '≈ ${km.toStringAsFixed(1)} km gikan nimo '
+                                    '(diretso nga linya)'),
                             style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.primary),
                           ),
@@ -310,14 +326,14 @@ class _BuyerActions extends ConsumerWidget {
             listingTitle: listing.title,
           ),
           icon: const Icon(Icons.chat_bubble_outline),
-          label: const Text('Message / Mensahe'),
+          label: Text(context.tr('Message', 'Mensahe')),
         ),
         if (forSale) ...[
           const SizedBox(height: 12),
           FilledButton.tonalIcon(
             onPressed: () => showPlaceBidSheet(context, listing),
             icon: const Icon(Icons.gavel),
-            label: const Text('Place a Bid / Mag-bid'),
+            label: Text(context.tr('Place a Bid', 'Mag-bid')),
           ),
         ],
         if (forBarter) ...[
@@ -325,7 +341,7 @@ class _BuyerActions extends ConsumerWidget {
           FilledButton.tonalIcon(
             onPressed: () => showProposeBarterSheet(context, listing),
             icon: const Icon(Icons.swap_horiz),
-            label: const Text('Propose Barter / Baylo'),
+            label: Text(context.tr('Propose Barter', 'Itanyag og Baylo')),
           ),
         ],
       ],
@@ -361,7 +377,7 @@ class _OwnerActions extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('This is your listing. / Imoha kini nga baligya.',
+        Text(context.tr('This is your listing.', 'Imoha kini nga baligya.'),
             style: Theme.of(context).textTheme.bodyMedium),
         const SizedBox(height: 12),
         _ListingNegotiations(listing: listing),
@@ -369,7 +385,7 @@ class _OwnerActions extends ConsumerWidget {
           onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
               builder: (_) => PostListingScreen(existing: listing))),
           icon: const Icon(Icons.edit_outlined),
-          label: const Text('Edit Listing / Usba'),
+          label: Text(context.tr('Edit Listing', 'Usba ang Baligya')),
         ),
         const SizedBox(height: 12),
         if (isActive)
@@ -377,10 +393,11 @@ class _OwnerActions extends ConsumerWidget {
             onPressed: () => _attempt(
               context,
               () => repo.closeListing(listing.listingId),
-              failure: 'Could not mark as sold',
+              failure: context.tr(
+                  'Could not mark as sold', 'Wala ma-markahan nga nabaligya'),
             ),
             icon: const Icon(Icons.check_circle_outline),
-            label: const Text('Mark as Sold / Close'),
+            label: Text(context.tr('Mark as Sold', 'Markahi nga Nabaligya')),
           )
         else
           FilledButton.tonalIcon(
@@ -388,29 +405,31 @@ class _OwnerActions extends ConsumerWidget {
               context,
               () => repo.updateListing(
                   listing.listingId, {'status': ListingStatus.active.name}),
-              failure: 'Could not re-open',
+              failure: context.tr('Could not re-open', 'Wala maablihi pag-usab'),
             ),
             icon: const Icon(Icons.refresh),
-            label: const Text('Re-open Listing / Ablihi pag-usab'),
+            label: Text(context.tr('Re-open Listing', 'Ablihi pag-usab')),
           ),
         const SizedBox(height: 12),
         OutlinedButton.icon(
           onPressed: () async {
+            final failed = context.tr('Could not delete', 'Wala mapapas');
             final confirmed = await showDialog<bool>(
               context: context,
               builder: (context) => AlertDialog(
-                title: const Text('Delete listing? / Papason ang baligya?'),
-                content: const Text(
-                    'This removes the listing permanently. / Mawala kini '
-                    'nga baligya hangtod sa hangtod.'),
+                title: Text(context.tr(
+                    'Delete listing?', 'Papason ang baligya?')),
+                content: Text(context.tr(
+                    'This removes the listing permanently.',
+                    'Mawala kini nga baligya hangtod sa hangtod.')),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(false),
-                    child: const Text('CANCEL'),
+                    child: Text(context.tr('CANCEL', 'KANSELAHON')),
                   ),
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(true),
-                    child: const Text('DELETE / PAPASA'),
+                    child: Text(context.tr('DELETE', 'PAPASA')),
                   ),
                 ],
               ),
@@ -423,11 +442,11 @@ class _OwnerActions extends ConsumerWidget {
               navigator.pop();
             } catch (error) {
               messenger.showSnackBar(
-                  SnackBar(content: Text('Could not delete: $error')));
+                  SnackBar(content: Text('$failed: $error')));
             }
           },
           icon: const Icon(Icons.delete_outline),
-          label: const Text('Delete Listing / Papasa'),
+          label: Text(context.tr('Delete Listing', 'Papasa ang Baligya')),
         ),
       ],
     );
@@ -459,7 +478,8 @@ class _ListingNegotiations extends ConsumerWidget {
       return Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: Text(
-          'No bids or barter proposals yet. / Wala pay tanyag.',
+          context.tr('No bids or barter proposals yet.',
+              'Wala pay tanyag o baylo.'),
           style: theme.textTheme.bodyMedium,
         ),
       );
@@ -468,14 +488,14 @@ class _ListingNegotiations extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Negotiations on this listing / Mga tanyag',
+        Text(context.tr('Negotiations on this listing', 'Mga tanyag niini nga baligya'),
             style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         for (final offer in offers ?? const <Offer>[])
           Card(
             child: ListTile(
               leading: const Icon(Icons.gavel),
-              title: Text('Bid: ${pesos(offer.amount)}'),
+              title: Text('${context.tr('Bid', 'Tanyag')}: ${pesos(offer.amount)}'),
               subtitle: StatusChip(statusName: offer.status.name),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context).push(MaterialPageRoute(
@@ -488,7 +508,7 @@ class _ListingNegotiations extends ConsumerWidget {
             child: ListTile(
               leading: const Icon(Icons.swap_horiz),
               title: Text(
-                'Barter: ${proposal.offeredItems.map((i) => i.toString()).join(', ')}',
+                '${context.tr('Barter', 'Baylo')}: ${proposal.offeredItems.map((i) => i.toString()).join(', ')}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
