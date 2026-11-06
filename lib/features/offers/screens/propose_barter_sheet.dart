@@ -5,6 +5,7 @@ import '../../../models/barter_proposal.dart';
 import '../../../models/listing.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../providers/barter_providers.dart';
+import '../../../core/l10n/app_language.dart';
 
 /// Opens the Propose Barter bottom sheet from the listing detail screen.
 Future<void> showProposeBarterSheet(BuildContext context, Listing listing) {
@@ -86,17 +87,37 @@ class _ProposeBarterSheetState extends ConsumerState<ProposeBarterSheet> {
     final offered = _items(_offered);
     final requested = _items(_requested);
     if (offered.isEmpty) {
-      setState(() => _error =
-          'Add at least one item you are offering. / Butangi og bisan '
-          'usa ka butang nga imong ibaylo.');
+      setState(() => _error = context.tr(
+          'Add at least one item you are offering.',
+          'Butangi og bisan usa ka butang nga imong ibaylo.'));
       return;
     }
     if (requested.isEmpty) {
-      setState(() => _error =
-          'Add at least one item you want in return. / Unsa may imong '
-          'gusto nga kabaylo?');
+      setState(() => _error = context.tr(
+          'Add at least one item you want in return.',
+          'Unsa may imong gusto nga kabaylo?'));
       return;
     }
+
+    // Paper §3.5.5: a confirmation step before an offer is sent.
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.tr('Send this proposal?', 'Ipadala ang tanyag?')),
+        content: Text(
+            '${context.tr('You give', 'Imong ihatag')}: ${offered.map((i) => i.toString()).join(', ')}\n'
+            '${context.tr('You receive', 'Imong madawat')}: ${requested.map((i) => i.toString()).join(', ')}'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(context.tr('CANCEL', 'KANSELAHON'))),
+          FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(context.tr('SEND', 'IPADALA'))),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
 
     setState(() {
       _busy = true;
@@ -113,12 +134,15 @@ class _ProposeBarterSheetState extends ConsumerState<ProposeBarterSheet> {
           );
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content:
-            Text('Barter proposal sent! / Napadala na ang tanyag sa baylo!'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(context.tr('Barter proposal sent!',
+            'Napadala na ang tanyag sa baylo!')),
       ));
     } catch (e) {
-      setState(() => _error = 'Could not send proposal: $e');
+      if (mounted) {
+        setState(() => _error =
+            '${tr(ref.read(languageProvider), 'Could not send proposal', 'Wala napadala ang tanyag')}: $e');
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -136,18 +160,18 @@ class _ProposeBarterSheetState extends ConsumerState<ProposeBarterSheet> {
           shrinkWrap: true,
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           children: [
-            Text('Propose a Barter / Tanyag og Baylo',
+            Text(context.tr('Propose a Barter', 'Tanyag og Baylo'),
                 style: theme.textTheme.titleLarge),
             const SizedBox(height: 4),
-            Text('For: ${widget.listing.title}',
+            Text('${context.tr('For', 'Para sa')}: ${widget.listing.title}',
                 style: theme.textTheme.bodyLarge),
             const SizedBox(height: 16),
-            Text('You give / Imong ihatag',
+            Text(context.tr('You give', 'Imong ihatag'),
                 style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             ..._itemRows(_offered),
             const SizedBox(height: 16),
-            Text('You receive / Imong madawat',
+            Text(context.tr('You receive', 'Imong madawat'),
                 style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             ..._itemRows(_requested),
@@ -155,9 +179,11 @@ class _ProposeBarterSheetState extends ConsumerState<ProposeBarterSheet> {
             TextField(
               controller: _noteController,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                labelText: 'Note (optional) / Mensahe',
-                hintText: 'e.g. Fresh harvest, can deliver to Poblacion',
+              decoration: InputDecoration(
+                labelText: context.tr('Note (optional)', 'Mensahe (opsyonal)'),
+                hintText: context.tr(
+                    'e.g. Fresh harvest, can deliver to Poblacion',
+                    'pananglitan: Bag-ong ani, mahatod sa Poblacion'),
               ),
             ),
             if (_error != null)
@@ -174,7 +200,7 @@ class _ProposeBarterSheetState extends ConsumerState<ProposeBarterSheet> {
                       height: 24,
                       width: 24,
                       child: CircularProgressIndicator(strokeWidth: 2.5))
-                  : const Text('SEND PROPOSAL / IPADALA'),
+                  : Text(context.tr('SEND PROPOSAL', 'IPADALA ANG TANYAG')),
             ),
           ],
         ),
@@ -182,62 +208,77 @@ class _ProposeBarterSheetState extends ConsumerState<ProposeBarterSheet> {
     );
   }
 
+  /// One item per block: the name on its own line, then quantity, unit
+  /// and the add/remove button. Fits a 360-wide phone without squeezing.
   List<Widget> _itemRows(List<_ItemDraft> drafts) {
+    const dense = EdgeInsets.symmetric(horizontal: 12, vertical: 14);
     return [
       for (var i = 0; i < drafts.length; i++)
         Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Row(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                flex: 2,
-                child: TextField(
-                  controller: drafts[i].quantity,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(
-                      labelText: 'Qty', isDense: true),
-                ),
+              TextField(
+                controller: drafts[i].name,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(
+                    labelText: context.tr('Item *', 'Butang *'),
+                    isDense: true,
+                    contentPadding: dense,
+                    hintText: context.tr('e.g. compost', 'pananglitan: abono')),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                flex: 3,
-                child: DropdownButtonFormField<String>(
-                  initialValue: drafts[i].unit,
-                  decoration:
-                      const InputDecoration(labelText: 'Unit', isDense: true),
-                  items: _units
-                      .map((u) => DropdownMenuItem(value: u, child: Text(u)))
-                      .toList(),
-                  onChanged: _busy
-                      ? null
-                      : (v) => setState(() => drafts[i].unit = v),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                flex: 5,
-                child: TextField(
-                  controller: drafts[i].name,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(
-                      labelText: 'Item *', isDense: true,
-                      hintText: 'e.g. compost'),
-                ),
-              ),
-              IconButton(
-                tooltip: i == drafts.length - 1 ? 'Add item' : 'Remove item',
-                onPressed: _busy
-                    ? null
-                    : () => setState(() {
-                          if (i == drafts.length - 1) {
-                            drafts.add(_ItemDraft());
-                          } else {
-                            drafts.removeAt(i).dispose();
-                          }
-                        }),
-                icon: Icon(
-                    i == drafts.length - 1 ? Icons.add_circle : Icons.remove_circle),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: drafts[i].quantity,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                          labelText: context.tr('Qty', 'Pila'),
+                          isDense: true,
+                          contentPadding: dense),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      // Long labels shrink with '...' instead of overflowing.
+                      isExpanded: true,
+                      initialValue: drafts[i].unit,
+                      decoration: InputDecoration(
+                          labelText: context.tr('Unit', 'Sukod'),
+                          isDense: true,
+                          contentPadding: dense),
+                      items: _units
+                          .map((u) =>
+                              DropdownMenuItem(value: u, child: Text(u)))
+                          .toList(),
+                      onChanged: _busy
+                          ? null
+                          : (v) => setState(() => drafts[i].unit = v),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: i == drafts.length - 1
+                        ? context.tr('Add item', 'Dugangi og butang')
+                        : context.tr('Remove item', 'Tangtanga ang butang'),
+                    onPressed: _busy
+                        ? null
+                        : () => setState(() {
+                              if (i == drafts.length - 1) {
+                                drafts.add(_ItemDraft());
+                              } else {
+                                drafts.removeAt(i).dispose();
+                              }
+                            }),
+                    icon: Icon(i == drafts.length - 1
+                        ? Icons.add_circle
+                        : Icons.remove_circle),
+                  ),
+                ],
               ),
             ],
           ),

@@ -1,40 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../core/l10n/app_language.dart';
+import '../../../core/widgets/empty_state.dart';
 
 final _pesoFormat = NumberFormat('#,##0.##');
 
 String pesos(num amount) => '₱${_pesoFormat.format(amount)}';
 
-/// Bilingual labels for the shared pending/accepted/rejected/countered
-/// state machine (OfferStatus and BarterStatus have identical names).
-String negotiationStatusLabel(String statusName) {
+/// Labels for the shared status names (OfferStatus and BarterStatus use
+/// the same names), in the chosen language.
+String negotiationStatusLabel(AppLanguage language, String statusName) {
+  String t(String en, String ceb) => tr(language, en, ceb);
   switch (statusName) {
     case 'pending':
-      return 'Pending / Naghulat';
+      return t('Pending', 'Naghulat');
     case 'accepted':
-      return 'Accepted / Gidawat';
+      return t('Accepted', 'Gidawat');
     case 'rejected':
-      return 'Rejected / Wala gidawat';
+      return t('Rejected', 'Wala gidawat');
     case 'countered':
-      return 'Countered / Gi-counter';
+      return t('Countered', 'Gi-counter');
+    case 'withdrawn':
+      return t('Withdrawn', 'Gibawi');
     default:
       return statusName;
   }
 }
 
-/// Bilingual labels for history actions (bid/propose/counter/accept/reject).
-String negotiationActionLabel(String action) {
+/// Labels for history actions, in the chosen language.
+String negotiationActionLabel(AppLanguage language, String action) {
+  String t(String en, String ceb) => tr(language, en, ceb);
   switch (action) {
     case 'bid':
-      return 'placed a bid / nag-bid';
+      return t('placed a bid', 'nag-bid');
     case 'propose':
-      return 'proposed a trade / nagtanyag og baylo';
+      return t('proposed a trade', 'nagtanyag og baylo');
     case 'counter':
-      return 'countered / ni-counter';
+      return t('countered', 'ni-counter');
     case 'accept':
-      return 'accepted / midawat';
+      return t('accepted', 'midawat');
     case 'reject':
-      return 'rejected / wala midawat';
+      return t('rejected', 'wala midawat');
+    case 'withdraw':
+      return t('withdrew the offer', 'gibawi ang tanyag');
     default:
       return action;
   }
@@ -52,6 +60,7 @@ class StatusChip extends StatelessWidget {
       'accepted' => (scheme.primaryContainer, scheme.onPrimaryContainer),
       'rejected' => (scheme.errorContainer, scheme.onErrorContainer),
       'countered' => (scheme.tertiaryContainer, scheme.onTertiaryContainer),
+      'withdrawn' => (scheme.surfaceContainerHighest, scheme.onSurfaceVariant),
       _ => (scheme.secondaryContainer, scheme.onSecondaryContainer),
     };
     return Container(
@@ -61,7 +70,7 @@ class StatusChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        negotiationStatusLabel(statusName),
+        negotiationStatusLabel(context.language, statusName),
         style: Theme.of(context)
             .textTheme
             .labelMedium
@@ -86,7 +95,7 @@ class YourMoveBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        'Your move / Ikaw na',
+        context.tr('Your move', 'Ikaw na'),
         style: Theme.of(context)
             .textTheme
             .labelSmall
@@ -105,21 +114,8 @@ class NegotiationListMessage extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 56),
-            const SizedBox(height: 16),
-            Text(text, textAlign: TextAlign.center),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      EmptyState(icon: icon, text: text, isError: icon == Icons.cloud_off);
 }
 
 final negotiationDateLabel = DateFormat('MMM d, h:mm a');

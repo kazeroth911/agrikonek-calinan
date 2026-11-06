@@ -1,20 +1,21 @@
-import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/validators.dart';
 import '../../../models/profile.dart';
+import '../../auth/providers/auth_providers.dart';
 import '../providers/profiling_providers.dart';
+import 'cooperatives_screen.dart';
+import '../../../core/l10n/app_language.dart';
 
-/// The Sprint 1 centerpiece: the researcher's field profiling form
-/// (paper §4.4 Phase 2). Captures identity, products, barter
-/// willingness, device/data-plan attributes, optional farm GPS,
-/// photos, and consent — then creates the auth account + profile doc.
+/// The researcher's profile-preparation form (paper §3.5.4). Captures
+/// identity, products, barter willingness, device/data-plan attributes,
+/// farm GPS only with consent C3, and the verification level (Table 3.4;
+/// level 2 only with consent C5). The profile is saved hidden. No farm
+/// photographs are taken (Table 3.14).
 class ProfilingFormScreen extends ConsumerStatefulWidget {
   const ProfilingFormScreen({super.key});
 
@@ -38,9 +39,23 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
   final Set<String> _roles = {AppConstants.roleSeller, AppConstants.roleBuyer};
   bool _barterWilling = false;
   bool _consentGiven = false;
+
+  /// C3: agreed to share farm GPS coordinates.
+  bool _locationConsent = false;
+
+  /// C5: agreed to cooperative confirmation, and the cooperative has
+  /// confirmed membership. Together these make verification level 2.
+  bool _cooperativeConsent = false;
+  bool _cooperativeConfirmed = false;
+
+  /// The farmer's cooperative, saved only with consent C5.
+  String? _cooperativeId;
   GeoPoint? _farmLocation;
-  final List<File> _photos = [];
   bool _busy = false;
+
+  int get _verificationLevel => _cooperativeConsent && _cooperativeConfirmed
+      ? Profile.levelCooperativeConfirmed
+      : Profile.levelVisited;
   String? _error;
 
   @override
@@ -86,26 +101,22 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
     }
   }
 
-  Future<void> _addPhoto() async {
-    final picked = await ImagePicker().pickImage(
-      source: ImageSource.camera,
-      maxWidth: 1280, // keep uploads small for rural data plans
-      imageQuality: 75,
-    );
-    if (picked != null) {
-      setState(() => _photos.add(File(picked.path)));
-    }
-  }
-
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_barangay == null) {
       setState(() => _error = 'Please select a barangay.');
       return;
     }
+    if (_cooperativeConfirmed && _cooperativeId == null) {
+      setState(() => _error =
+          'Choose the cooperative that confirmed membership, or untick the '
+          'confirmation.');
+      return;
+    }
     if (!_consentGiven) {
-      setState(() =>
-          _error = 'Written consent must be confirmed before saving (RA 10173).');
+      setState(() => _error =
+          'Consent to participate and to account registration (C8) must be '
+          'confirmed before saving (RA 10173).');
       return;
     }
 
@@ -120,9 +131,7 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
         fullName: _nameController.text.trim(),
         roles: _roles.toList(),
         barangay: _barangay!,
-        phone: _phoneController.text.trim().isEmpty
-            ? null
-            : Validators.toE164Ph(_phoneController.text),
+        phone: Validators.toE164Ph(_phoneController.text),
         products: _splitList(_productsController.text),
         barterWillingness: _barterWilling,
         preferredTradeResources: _splitList(_tradeResourcesController.text),
@@ -136,14 +145,15 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
             ? null
             : _dataPlanController.text.trim(),
         consentGiven: _consentGiven,
+        cooperativeId: _cooperativeConsent ? _cooperativeId : null,
       );
 
       final result =
           await ref.read(profilingControllerProvider).saveNewFarmer(
                 draft: draft,
                 email: _emailController.text.trim(),
-                photos: _photos,
-                farmLocation: _farmLocation,
+                farmLocation: _locationConsent ? _farmLocation : null,
+                verificationLevel: _verificationLevel,
               );
 
       if (!mounted) return;
@@ -151,13 +161,17 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
         context: context,
         barrierDismissible: false,
         builder: (context) => AlertDialog(
-          title: const Text('Profile saved!'),
+          title: Text(context.tr(
+              'Profile saved (hidden)', 'Na-save ang profile (nakatago)')),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Write these on the credential slip '
-                  'for the farmer:'),
+              const Text(
+                  'Record these in the restricted research records. Do NOT '
+                  'give them to the participant during Phase 2; they are '
+                  'used only if the participant joins a separately '
+                  'consented testing phase.'),
               const SizedBox(height: 12),
               SelectableText('Email: ${result.email}\n'
                   'Password: ${result.starterPassword}'),
@@ -183,26 +197,32 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile a Farmer')),
+      appBar: AppBar(
+          title: Text(context.tr('Profile a Farmer', 'I-profile ang Mag-uuma'))),
       body: SafeArea(
         child: Form(
           key: _formKey,
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Text('Identity', style: theme.textTheme.titleMedium),
+              Text(context.tr('Identity', 'Pagkatawo'),
+                  style: theme.textTheme.titleMedium),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _nameController,
                 textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(labelText: 'Full name *'),
+                decoration: InputDecoration(
+                    labelText: context.tr('Full name *', 'Tibuok ngalan *')),
                 validator: (v) =>
                     Validators.requiredField(v, label: 'Full name'),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
+                // Long labels shrink with '...' instead of overflowing.
+                isExpanded: true,
                 initialValue: _barangay,
-                decoration: const InputDecoration(labelText: 'Barangay *'),
+                decoration:
+                    const InputDecoration(labelText: 'Barangay *'),
                 items: AppConstants.calinanBarangays
                     .map((b) => DropdownMenuItem(value: b, child: Text(b)))
                     .toList(),
@@ -212,23 +232,26 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
               TextFormField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                    labelText: 'Mobile number (09XXXXXXXXX)'),
-                validator: (v) => Validators.phPhone(v, optional: true),
+                decoration: InputDecoration(
+                    labelText:
+                        context.tr('Mobile number *', 'Numero sa cellphone *'),
+                    helperText: '09XXXXXXXXX'),
+                validator: (v) => Validators.phPhone(v),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: 'Account email *',
+                decoration: InputDecoration(
+                  labelText: context.tr('Account email *', 'Email sa account *'),
                   helperText:
                       'Used for sign-in. A managed address like name.agrikonek@gmail.com works.',
                 ),
                 validator: Validators.email,
               ),
               const SizedBox(height: 24),
-              Text('Roles', style: theme.textTheme.titleMedium),
+              Text(context.tr('Roles', 'Mga papel'),
+                  style: theme.textTheme.titleMedium),
               Wrap(
                 spacing: 8,
                 children: [
@@ -247,25 +270,28 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
                 ],
               ),
               const SizedBox(height: 24),
-              Text('Farm & Products', style: theme.textTheme.titleMedium),
+              Text(context.tr('Farm & Products', 'Uma ug Produkto'),
+                  style: theme.textTheme.titleMedium),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _productsController,
-                decoration: const InputDecoration(
-                  labelText: 'Products (comma-separated)',
+                decoration: InputDecoration(
+                  labelText: context.tr('Products (comma-separated)',
+                      'Mga produkto (bulagon og koma)'),
                   hintText: 'durian, eggs, manure',
                 ),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _farmSizeController,
-                decoration: const InputDecoration(
-                    labelText: 'Approximate farm size / notes'),
+                decoration: InputDecoration(
+                    labelText: context.tr('Approximate farm size, notes',
+                        'Gibanabana nga gidak-on sa uma, mga nota')),
               ),
               const SizedBox(height: 12),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Willing to barter?'),
+                title: Text(context.tr('Willing to barter?', 'Andam mo-baylo?')),
                 value: _barterWilling,
                 onChanged: (v) => setState(() => _barterWilling = v),
               ),
@@ -278,7 +304,8 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
                   ),
                 ),
               const SizedBox(height: 24),
-              Text('Device & Connectivity', style: theme.textTheme.titleMedium),
+              Text(context.tr('Device & Connectivity', 'Cellphone ug Internet'),
+                  style: theme.textTheme.titleMedium),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _deviceController,
@@ -292,10 +319,20 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
                     labelText: 'Data plan', hintText: 'e.g. prepaid promo, Wi-Fi at home'),
               ),
               const SizedBox(height: 24),
-              Text('Farm Location (optional, with consent)',
+              Text(context.tr('Farm Location', 'Lokasyon sa uma'),
                   style: theme.textTheme.titleMedium),
-              const SizedBox(height: 8),
-              Row(
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: const Text(
+                    'C3: The participant agreed to share farm GPS coordinates'),
+                value: _locationConsent,
+                onChanged: (v) => setState(() {
+                  _locationConsent = v ?? false;
+                  if (!_locationConsent) _farmLocation = null;
+                }),
+              ),
+              if (_locationConsent) Row(
                 children: [
                   Expanded(
                     child: Text(_farmLocation == null
@@ -306,36 +343,83 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
                   OutlinedButton.icon(
                     onPressed: _busy ? null : _captureLocation,
                     icon: const Icon(Icons.my_location),
-                    label: const Text('Capture'),
+                    label: Text(context.tr('Capture', 'Kuhaa')),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-              Text('Farm Photos', style: theme.textTheme.titleMedium),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final photo in _photos)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.file(photo,
-                          width: 80, height: 80, fit: BoxFit.cover),
-                    ),
-                  OutlinedButton.icon(
-                    onPressed: _busy ? null : _addPhoto,
-                    icon: const Icon(Icons.camera_alt),
-                    label: const Text('Add photo'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
+              Text(context.tr('Verification', 'Pag-verify'),
+                  style: theme.textTheme.titleMedium),
+              const SizedBox(height: 4),
+              const Text('Level 1 "Visited by researchers" is recorded for '
+                  'everyone met in Calinan.'),
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
                 controlAffinity: ListTileControlAffinity.leading,
                 title: const Text(
-                    'Written informed consent has been signed (RA 10173) *'),
+                    'C5: The participant agreed to cooperative confirmation'),
+                value: _cooperativeConsent,
+                onChanged: (v) => setState(() {
+                  _cooperativeConsent = v ?? false;
+                  if (!_cooperativeConsent) {
+                    _cooperativeConfirmed = false;
+                    _cooperativeId = null;
+                  }
+                }),
+              ),
+              if (_cooperativeConsent) ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        // Long labels shrink with '...' instead of overflowing.
+                        isExpanded: true,
+                        initialValue: _cooperativeId,
+                        decoration: const InputDecoration(
+                            labelText: 'Cooperative or association'),
+                        items: [
+                          for (final c
+                              in ref.watch(cooperativesProvider).valueOrNull ??
+                                  const [])
+                            DropdownMenuItem(
+                                value: c.cooperativeId, child: Text(c.name)),
+                        ],
+                        onChanged: (v) => setState(() => _cooperativeId = v),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Add a cooperative',
+                      icon: const Icon(Icons.add_business_outlined),
+                      onPressed: () async {
+                        final id = await showAddCooperativeDialog(context, ref,
+                            barangay: _barangay);
+                        if (id != null && mounted) {
+                          setState(() => _cooperativeId = id);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: const Text(
+                      'The cooperative or association confirmed membership '
+                      '(level 2 "Cooperative-confirmed")'),
+                  value: _cooperativeConfirmed,
+                  onChanged: (v) =>
+                      setState(() => _cooperativeConfirmed = v ?? false),
+                ),
+              ],
+              const SizedBox(height: 16),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: const Text(
+                    'The participant gave informed consent and agreed to '
+                    'account registration (C1, C2, C8) *'),
+                subtitle: const Text(
+                    'The profile is saved hidden from other users.'),
                 value: _consentGiven,
                 onChanged: (v) =>
                     setState(() => _consentGiven = v ?? false),
@@ -354,7 +438,7 @@ class _ProfilingFormScreenState extends ConsumerState<ProfilingFormScreen> {
                         height: 24,
                         width: 24,
                         child: CircularProgressIndicator(strokeWidth: 2.5))
-                    : const Text('SAVE PROFILE'),
+                    : Text(context.tr('SAVE PROFILE', 'I-SAVE ANG PROFILE')),
               ),
               const SizedBox(height: 32),
             ],

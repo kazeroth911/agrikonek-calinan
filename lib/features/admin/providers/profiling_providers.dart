@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -31,10 +29,12 @@ class ProfilingResult {
   final String starterPassword;
 }
 
-/// Orchestrates the full profiling save:
-/// 1. create auth account on the secondary app (admin stays signed in)
-/// 2. upload farm photos to Cloud Storage
-/// 3. write the Profile document at the new uid
+/// Orchestrates the full profiling save (paper §3.5.4):
+/// 1. create the login on the secondary app (admin stays signed in);
+///    the credentials stay with the researchers during Phase 2
+/// 2. write the profile HIDDEN, with its verification level (Table 3.4)
+/// No farm photographs are taken (Table 3.14). If step 2 fails, the new
+/// login is deleted again so the researcher can retry with the same email.
 final profilingControllerProvider =
     Provider<ProfilingController>((ref) => ProfilingController(ref));
 
@@ -46,9 +46,12 @@ class ProfilingController {
     required Profile draft,
     required String email,
     String? starterPassword,
-    List<File> photos = const [],
     GeoPoint? farmLocation,
+    int verificationLevel = Profile.levelVisited,
   }) async {
+    final adminUid = _ref.read(authStateProvider).valueOrNull?.uid;
+    if (adminUid == null) throw StateError('Sign in as a researcher first.');
+
     final accounts = _ref.read(adminAccountServiceProvider);
     final repo = _ref.read(profileRepositoryProvider);
 
@@ -56,36 +59,43 @@ class ProfilingController {
         starterPassword ?? AdminAccountService.generateStarterPassword();
 
     // 1. Auth account (secondary app keeps the admin session alive).
-    final uid = await accounts.createFarmerAuthAccount(
+    final account = await accounts.createFarmerAuthAccount(
       email: email,
       password: password,
     );
+    final uid = account.uid;
 
-    // 2. Photos — best-effort: an empty result means Storage is
-    // unavailable (Spark tier / offline) and the profile saves photo-less.
-    final photoUrls = await _ref
-        .read(storageServiceProvider)
-        .uploadProfilePhotos(uid: uid, files: photos);
-
-    // 3. Profile document keyed by the auth uid.
-    final profile = Profile(
-      userId: uid,
-      fullName: draft.fullName,
-      roles: draft.roles,
-      barangay: draft.barangay,
-      phone: draft.phone,
-      email: email,
-      products: draft.products,
-      barterWillingness: draft.barterWillingness,
-      preferredTradeResources: draft.preferredTradeResources,
-      farmLocation: farmLocation,
-      farmSizeNote: draft.farmSizeNote,
-      deviceType: draft.deviceType,
-      dataPlan: draft.dataPlan,
-      photoUrls: photoUrls,
-      consentGiven: draft.consentGiven,
-    );
-    await repo.createProfile(profile);
+    try {
+      // 2. Hidden profile document keyed by the auth uid.
+      final profile = Profile(
+        userId: uid,
+        fullName: draft.fullName,
+        roles: draft.roles,
+        barangay: draft.barangay,
+        phone: draft.phone,
+        email: email,
+        products: draft.products,
+        barterWillingness: draft.barterWillingness,
+        preferredTradeResources: draft.preferredTradeResources,
+        farmLocation: farmLocation,
+        farmSizeNote: draft.farmSizeNote,
+        deviceType: draft.deviceType,
+        dataPlan: draft.dataPlan,
+        consentGiven: draft.consentGiven,
+        verificationLevel: verificationLevel,
+        cooperativeId: draft.cooperativeId,
+      );
+      await repo.createPreparedProfile(profile, byUid: adminUid);
+    } catch (_) {
+      // No profile, so no login either: keeps the email reusable.
+      try {
+        await account.rollback();
+      } catch (_) {
+        // Rolling back is best-effort; the original error matters more.
+      }
+      rethrow;
+    }
+    await account.finish();
 
     return ProfilingResult(uid: uid, email: email, starterPassword: password);
   }

@@ -4,4 +4,8 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Debug builds only: the Firebase Emulator Suite on the laptop is
+         reached over plain HTTP (USE_EMULATORS and the integration tests).
+         Release builds keep Android's default of HTTPS only. -->
+    <application android:usesCleartextTraffic="true" />
 </manifest>

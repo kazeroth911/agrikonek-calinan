@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../core/constants/app_constants.dart';
+import '../core/l10n/app_language.dart';
 
 /// Root entity of the system (Figure 5 of the Capstone paper).
 /// Created by the researcher-admin during field profiling.
@@ -22,6 +23,11 @@ class Profile {
     this.photoUrls = const [],
     this.consentGiven = false,
     this.consentUrl,
+    this.hidden = false,
+    this.verificationLevel = 0,
+    this.cooperativeId,
+    this.claimedBy,
+    this.claimedFrom,
     this.createdAt,
     this.updatedAt,
   });
@@ -48,6 +54,47 @@ class Profile {
 
   final bool consentGiven;
   final String? consentUrl; // photo/scan of signed consent form
+
+  /// Hidden by the farmer or an admin: the profile and its listings leave
+  /// the marketplace, and others see "This profile is unavailable."
+  /// Written only through ProfileRepository.setHidden, never by toMap,
+  /// so saving other profile edits can never unhide it by accident.
+  final bool hidden;
+
+  /// Table 3.4 of the paper: 1 = the researchers met the person in
+  /// Calinan; 2 = level 1 plus the cooperative confirmed membership, with
+  /// the person's consent (C5). 0 = not recorded (older accounts).
+  /// Set only by researcher-admins; the security rules stop owners from
+  /// changing it.
+  final int verificationLevel;
+
+  /// The cooperative or association that confirmed membership. Saved only
+  /// when the farmer agreed to cooperative confirmation (consent item C5).
+  /// Set by researcher-admins; owners cannot change it.
+  final String? cooperativeId;
+
+  /// Claim status (paper §3.5.4). On a researcher-prepared profile,
+  /// [claimedBy] is the phone-verified account that took it over; on that
+  /// account's own profile, [claimedFrom] is the prepared profile it was
+  /// copied from. Both are written only by the claim, never by toMap.
+  final String? claimedBy;
+  final String? claimedFrom;
+
+  /// A prepared profile that has moved to a phone sign-in.
+  bool get isClaimed => claimedBy != null;
+
+  static const levelVisited = 1;
+  static const levelCooperativeConfirmed = 2;
+
+  /// What other users see, per Table 3.4, in the chosen language.
+  String? verificationLabelFor(AppLanguage language) =>
+      switch (verificationLevel) {
+        levelVisited =>
+          tr(language, 'Visited by researchers', 'Gibisita sa mga researcher'),
+        levelCooperativeConfirmed => tr(
+            language, 'Cooperative-confirmed', 'Gikumpirma sa kooperatiba'),
+        _ => null,
+      };
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -69,6 +116,7 @@ class Profile {
     List<String>? photoUrls,
     bool? consentGiven,
     String? consentUrl,
+    String? cooperativeId,
   }) {
     return Profile(
       userId: userId,
@@ -88,6 +136,11 @@ class Profile {
       photoUrls: photoUrls ?? this.photoUrls,
       consentGiven: consentGiven ?? this.consentGiven,
       consentUrl: consentUrl ?? this.consentUrl,
+      hidden: hidden,
+      verificationLevel: verificationLevel,
+      cooperativeId: cooperativeId ?? this.cooperativeId,
+      claimedBy: claimedBy,
+      claimedFrom: claimedFrom,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
@@ -112,6 +165,8 @@ class Profile {
       'photoUrls': photoUrls,
       'consentGiven': consentGiven,
       'consentUrl': consentUrl,
+      'verificationLevel': verificationLevel,
+      'cooperativeId': cooperativeId,
       'createdAt': createdAt == null
           ? FieldValue.serverTimestamp()
           : Timestamp.fromDate(createdAt!),
@@ -138,6 +193,11 @@ class Profile {
       photoUrls: List<String>.from(map['photoUrls'] ?? const []),
       consentGiven: (map['consentGiven'] ?? false) as bool,
       consentUrl: map['consentUrl'] as String?,
+      hidden: (map['hidden'] ?? false) == true,
+      verificationLevel: _levelFromMap(map['verificationLevel']),
+      cooperativeId: map['cooperativeId'] as String?,
+      claimedBy: map['claimedBy'] as String?,
+      claimedFrom: map['claimedFrom'] as String?,
       createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
     );
@@ -145,6 +205,16 @@ class Profile {
 
   factory Profile.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) =>
       Profile.fromMap(doc.id, doc.data() ?? const {});
+
+  static int _levelFromMap(Object? raw) {
+    if (raw is num) {
+      final level = raw.toInt();
+      if (level == levelVisited || level == levelCooperativeConfirmed) {
+        return level;
+      }
+    }
+    return 0;
+  }
 
   /// `roles` is stored as a `{role: bool}` map (e.g. `{admin: true,
   /// seller: false}`); only roles set to `true` are active. Older

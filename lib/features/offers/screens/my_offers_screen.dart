@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/offer.dart';
 import '../../../services/offer_repository.dart';
 import '../../auth/providers/auth_providers.dart';
+import '../../notifications/widgets/notification_bell.dart';
 import '../providers/offer_providers.dart';
 import '../widgets/negotiation_widgets.dart';
 import 'offer_detail_screen.dart';
+import '../../../core/l10n/app_language.dart';
 
 /// Every bid the signed-in user is part of: Incoming (on their
 /// listings) and Sent (bids they placed), each a live stream.
@@ -19,23 +21,24 @@ class MyOffersScreen extends ConsumerWidget {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Bids / Mga Tanyag'),
-          bottom: const TabBar(tabs: [
-            Tab(text: 'Incoming / Padulong'),
-            Tab(text: 'Sent / Gipadala'),
+          title: Text(context.tr('Bids', 'Mga Tanyag')),
+          actions: const [NotificationBell()],
+          bottom: TabBar(tabs: [
+            Tab(text: context.tr('Incoming', 'Padulong')),
+            Tab(text: context.tr('Sent', 'Gipadala')),
           ]),
         ),
         body: TabBarView(
           children: [
             _OfferList(
               provider: incomingOffersProvider,
-              emptyText: 'No bids on your listings yet.\n'
-                  'Wala pay nag-bid sa imong mga baligya.',
+              emptyText: context.tr('No bids on your listings yet.',
+                  'Wala pay nag-bid sa imong mga baligya.'),
             ),
             _OfferList(
               provider: myOffersProvider,
-              emptyText: 'You have not placed any bids yet.\n'
-                  'Wala pa kay gipadala nga bid.',
+              emptyText: context.tr('You have not placed any bids yet.',
+                  'Wala pa kay gipadala nga bid.'),
             ),
           ],
         ),
@@ -59,7 +62,7 @@ class _OfferList extends ConsumerWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => NegotiationListMessage(
         icon: Icons.cloud_off,
-        text: 'Could not load bids.\nWala ma-load ang mga bid.\n\n$e',
+        text: '${context.tr('Could not load bids.', 'Wala ma-load ang mga bid.')}\n\n$e',
       ),
       data: (offers) {
         if (offers.isEmpty) {
@@ -77,7 +80,7 @@ class _OfferList extends ConsumerWidget {
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 title: Text(
                   offer.listingTitle.isEmpty
-                      ? 'Listing'
+                      ? context.tr('Listing', 'Baligya')
                       : offer.listingTitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

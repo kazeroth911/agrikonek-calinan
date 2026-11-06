@@ -3,15 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../admin/screens/admin_home_screen.dart';
 import '../auth/providers/auth_providers.dart';
+import '../auth/screens/claim_profile_screen.dart';
+import '../chat/providers/chat_providers.dart';
+import '../chat/screens/conversations_screen.dart';
 import '../listings/screens/marketplace_screen.dart';
 import '../offers/providers/barter_providers.dart';
 import '../offers/providers/offer_providers.dart';
 import '../offers/screens/my_barters_screen.dart';
 import '../offers/screens/my_offers_screen.dart';
+import '../../core/l10n/app_language.dart';
 
 /// Routes the signed-in user by role:
 ///   admin  -> AdminHomeScreen (researcher profiling tools)
-///   others -> bottom-nav shell: Market / Bids / Barters (Sprint 3)
+///   others -> bottom-nav shell: Market / Bids / Barters / Messages
 class HomeShell extends ConsumerWidget {
   const HomeShell({super.key});
 
@@ -24,7 +28,16 @@ class HomeShell extends ConsumerWidget {
           const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, _) => _MissingProfileScreen(detail: e.toString()),
       data: (profile) {
-        if (profile == null) return const _MissingProfileScreen();
+        if (profile == null) {
+          // A phone sign-in with no profile yet: offer the farmer the
+          // researcher-prepared profile with the same number (§3.5.4).
+          final phone = ref.watch(authStateProvider).valueOrNull?.phoneNumber;
+          if (phone != null && phone.isNotEmpty) {
+            return ClaimProfileScreen(phone: phone);
+          }
+          return const _MissingProfileScreen();
+        }
+        if (profile.isClaimed) return const MovedAccountScreen();
         if (profile.isAdmin) return const AdminHomeScreen();
         return const _FarmerShell();
       },
@@ -49,6 +62,7 @@ class _FarmerShellState extends ConsumerState<_FarmerShell> {
   Widget build(BuildContext context) {
     final offerCount = ref.watch(offersNeedingActionProvider);
     final barterCount = ref.watch(bartersNeedingActionProvider);
+    final chatCount = ref.watch(unreadChatCountProvider);
 
     return Scaffold(
       body: IndexedStack(
@@ -57,34 +71,44 @@ class _FarmerShellState extends ConsumerState<_FarmerShell> {
           MarketplaceScreen(),
           MyOffersScreen(),
           MyBartersScreen(),
+          ConversationsScreen(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: [
-          const NavigationDestination(
-            icon: Icon(Icons.storefront_outlined),
-            selectedIcon: Icon(Icons.storefront),
-            label: 'Market',
+          NavigationDestination(
+            icon: const Icon(Icons.storefront_outlined),
+            selectedIcon: const Icon(Icons.storefront),
+            label: context.tr('Market', 'Merkado'),
           ),
           NavigationDestination(
             icon: Badge(
               isLabelVisible: offerCount > 0,
               label: Text('$offerCount'),
-              child: const Icon(Icons.gavel_outlined),
+              child: const Icon(Icons.sell_outlined),
             ),
-            selectedIcon: const Icon(Icons.gavel),
-            label: 'Bids',
+            selectedIcon: const Icon(Icons.sell),
+            label: context.tr('Bids', 'Tanyag'),
           ),
           NavigationDestination(
             icon: Badge(
               isLabelVisible: barterCount > 0,
               label: Text('$barterCount'),
-              child: const Icon(Icons.swap_horiz_outlined),
+              child: const Icon(Icons.handshake_outlined),
             ),
-            selectedIcon: const Icon(Icons.swap_horiz),
-            label: 'Barter',
+            selectedIcon: const Icon(Icons.handshake),
+            label: context.tr('Barter', 'Baylo'),
+          ),
+          NavigationDestination(
+            icon: Badge(
+              isLabelVisible: chatCount > 0,
+              label: Text(chatCount > 99 ? '99+' : '$chatCount'),
+              child: const Icon(Icons.chat_bubble_outline),
+            ),
+            selectedIcon: const Icon(Icons.chat_bubble),
+            label: context.tr('Messages', 'Mensahe'),
           ),
         ],
       ),
@@ -109,9 +133,12 @@ class _MissingProfileScreen extends ConsumerWidget {
             children: [
               const Icon(Icons.person_search, size: 64),
               const SizedBox(height: 16),
-              const Text(
-                'Your account exists, but your profile is not yet set up.\n'
-                'Please contact your researcher.',
+              Text(
+                context.tr(
+                    'Your account exists, but your profile is not yet set up.\n'
+                        'Please contact your researcher.',
+                    'Naa na imong account, pero wala pa naandam ang imong profile.\n'
+                        'Palihug kontaka ang imong researcher.'),
                 textAlign: TextAlign.center,
               ),
               if (detail != null) ...[
@@ -122,7 +149,7 @@ class _MissingProfileScreen extends ConsumerWidget {
               OutlinedButton(
                 onPressed: () =>
                     ref.read(authServiceProvider).signOut(),
-                child: const Text('Sign out'),
+                child: Text(context.tr('Sign out', 'Mogawas')),
               ),
             ],
           ),

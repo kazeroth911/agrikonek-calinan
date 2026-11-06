@@ -10,6 +10,25 @@ class AppConstants {
   static const colConversations = 'conversations';
   static const colMessages = 'messages'; // subcollection of conversations
   static const colNotifications = 'notifications';
+  static const colDeviceTokens = 'deviceTokens';
+  static const colAnnouncements = 'announcements';
+  static const colCooperatives = 'cooperatives';
+
+  /// IDs of hidden profiles. Readable by every signed-in user so the app
+  /// can filter the marketplace, while the hidden profiles themselves
+  /// are readable only by their owner and admins.
+  static const colHiddenProfiles = 'hiddenProfiles';
+
+  /// Phone sign-in with profile claiming (paper §3.5.4). On by default:
+  /// a phone-verified account takes over the researcher-prepared profile
+  /// with the same number. Build with --dart-define=ENABLE_OTP=false to
+  /// hide it again (for example, while only email accounts are tested).
+  static const enableOtpSignIn =
+      bool.fromEnvironment('ENABLE_OTP', defaultValue: true);
+
+  /// Shown wherever a hidden profile would otherwise appear.
+  static const profileUnavailable = 'This profile is unavailable.';
+  static const profileUnavailableCeb = 'Dili na makita kini nga profile.';
 
   /// Roles supported by the multi-role account model.
   static const roleSeller = 'seller';
@@ -18,27 +37,29 @@ class AppConstants {
   static const roleAdmin = 'admin';
   static const allRoles = [roleSeller, roleBuyer, roleTrader, roleAdmin];
 
-  /// Calinan District barangays for the profiling form dropdown.
-  /// Verify/extend this list during barangay coordination.
+  /// Calinan District barangays for the profiling form dropdown: the 19
+  /// listed in the Farmer Profile Sheet (paper §3.7 and Appendix B,
+  /// item 3), in the same order. Keep the two lists identical.
   static const calinanBarangays = <String>[
+    'Biao Joaquin',
     'Calinan Poblacion',
-    'Wangan',
-    'Riverside',
-    'Lamanan',
-    'Tamayong',
     'Cawayan',
     'Dacudao',
     'Dalagdag',
     'Dominga',
     'Inayangan',
     'Lacson',
+    'Lamanan',
+    'Lampianao',
     'Megkawayan',
     'Pangyan',
+    'Riverside',
     'Saloy',
     'Sirib',
     'Subasta',
     'Talomo River',
-    'Wines',
+    'Tamayong',
+    'Wangan',
   ];
 
   /// Listing categories for the marketplace feed (Sprint 2).

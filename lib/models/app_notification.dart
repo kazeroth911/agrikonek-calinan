@@ -7,6 +7,7 @@ class AppNotification {
   const AppNotification({
     required this.notificationId,
     required this.recipientId,
+    this.senderId = '',
     required this.type, // bid | barter | msg | admin
     this.payload = const {},
     this.read = false,
@@ -15,6 +16,10 @@ class AppNotification {
 
   final String notificationId;
   final String recipientId;
+
+  /// Account that caused the alert. The security rules require it to be
+  /// the signed-in writer and a party to the referenced offer or barter.
+  final String senderId;
   final String type;
   final Map<String, dynamic> payload;
   final bool read;
@@ -23,6 +28,7 @@ class AppNotification {
   Map<String, dynamic> toMap() {
     return {
       'recipientId': recipientId,
+      'senderId': senderId,
       'type': type,
       'payload': payload,
       'read': read,
@@ -36,6 +42,7 @@ class AppNotification {
     return AppNotification(
       notificationId: id,
       recipientId: (map['recipientId'] ?? '') as String,
+      senderId: (map['senderId'] ?? '') as String,
       type: (map['type'] ?? 'admin') as String,
       payload: Map<String, dynamic>.from(map['payload'] ?? const {}),
       read: (map['read'] ?? false) as bool,

@@ -1,0 +1,90 @@
+# Running the automated tests
+
+AgriKonek has four test suites, matching the testing plan in paper §3.11. Run them before a release and record each total for the paper.
+
+| Suite | What it checks | Where | Command (from the project root) |
+|---|---|---|---|
+| Flutter unit and widget tests (§3.11 layers 1–2) | Models, validators, search, negotiation rules, notification wording, listing expiry, passwords, claim fields, the barangay list, the offline notice; widgets: listing card, bid dialog, barter composer, message bubble, sign-in language switch | `test/` | `flutter test` (add `--coverage` for line coverage) |
+| Integration tests (§3.11 layer 3) | Sign-in, profile claiming, posting a listing, placing and accepting a bid, accepting a barter, sending a message, all against the Firebase Emulator Suite | `integration_test/` | see below |
+| Cloud Function tests | Push wording in English and Cebuano, one send per language, dead-token clean-up, and that push and inbox wording match | `functions/test/` | `cd functions; npm test; cd ..` |
+| Security-rule tests | Who may read and write each collection: bids, barters, listings, chat, notifications, hiding, announcements | `firestore-tests/` | see below |
+
+## Security-rule tests
+
+These run `firestore.rules` in Firebase's local emulator, on a throwaway project called `demo-agrikonek`, so they never touch the real `kalinan-app` data.
+
+### One-time setup
+
+1. **Java 21.** The Firestore emulator needs Java. Install the Temurin 21 LTS build from https://adoptium.net (Windows x64 `.msi`, and tick "Set JAVA_HOME"). Open a new PowerShell window and check with `java -version`.
+2. **Test packages:**
+
+```powershell
+cd firestore-tests
+npm install
+cd ..
+```
+
+### Run
+
+```powershell
+firebase emulators:exec --only firestore --project demo-agrikonek "npm --prefix firestore-tests test"
+```
+
+The first run downloads the emulator (about 60 MB). Every test should pass. A failure names the rule that let through, or blocked, something it should not have. If that happens, send the output to whoever maintains the rules.
+
+### What the tests cover
+
+- **Listings:** a farmer can post only under their own name and can never hand a listing to someone else. Negative prices are refused.
+- **Withdrawing:** only the party who made the last offer can withdraw it, and a withdrawn bid is final.
+- **Verification levels:** farmers cannot raise their own level. Researcher-admins can set it and prepare hidden profiles.
+- **Bids and barters:** the seller must be the listing's real owner, and nobody can bid on their own or a closed listing. Accepting your own bid or proposal is refused, while countering is allowed. History can only grow by one entry per move. Accepted and rejected are final. Only the two parties can read a bid.
+- **Notifications:** only a party to the bid, barter or chat can notify the other party. Only admins can send announcements, and only the recipient can read a notification or mark it read.
+- **Chat:** a thread's ID must be the two sorted user IDs. Outsiders cannot read or send, and messages cannot be edited.
+- **Profile hiding:** a hidden profile is readable only by its owner and admins. It receives no new bids or messages, and only the owner or an admin can hide it.
+- **Profiles and announcements:** farmers cannot make themselves admin or change their consent record. Only admins can read the announcement history.
+- **Profile claiming:** only the person whose verified phone number matches a prepared profile can read it and claim it, the copy must be identical apart from the claim fields, it can be claimed once, and the copy and the claimed mark must be written together. Owners cannot change their phone number, cooperative or claim fields.
+- **Cooperatives:** only researcher-admins can read, add or rename cooperatives and record a farmer's cooperative.
+- **Push tokens:** a user can save a push token only under their own account, with the language set to English or Cebuano.
+
+## Integration tests (app flows against the emulators)
+
+These run the app's own code on an Android emulator or phone, talking to the Firebase emulators on your laptop. They wipe the emulators first and never touch the real `kalinan-app` data.
+
+### Run
+
+1. **Start the emulators** (leave this window open):
+
+   ```powershell
+   firebase emulators:start --only auth,firestore --project kalinan-app
+   ```
+
+   `--project kalinan-app` only names the local emulator data; nothing is sent to the real project.
+
+2. **Start an Android emulator** from Android Studio (Device Manager), or plug in a phone that is on the same Wi-Fi as the laptop.
+
+3. **Run the tests** in a second PowerShell window:
+
+   ```powershell
+   # Android emulator (10.0.2.2 is the laptop as the emulator sees it):
+   flutter test integration_test
+
+   # Real phone: on the same Wi-Fi as the laptop. Use the laptop's
+   # Wi-Fi IPv4 address from `ipconfig`, for example 192.168.1.20.
+   flutter test integration_test --dart-define=EMULATOR_HOST=192.168.1.20
+   ```
+
+   For a real phone, once, in PowerShell **as Administrator**, let the phone reach the two emulator ports on your home or school network:
+
+   ```powershell
+   New-NetFirewallRule -DisplayName "Firebase emulators (AgriKonek tests)" -Direction Inbound -Protocol TCP -LocalPort 8080,9099 -Action Allow -Profile Private
+   ```
+
+   Your Wi-Fi network must be set to **Private** in Windows (Settings → Network & internet → Wi-Fi → your network). Some public or school networks block phone-to-laptop traffic; a phone hotspot works as a fallback (connect the laptop to the phone's hotspot and use the laptop's address on it).
+
+   `10.0.2.2` works only inside Android Studio's emulator. USB forwarding with `adb reverse` and `127.0.0.1` does **not** work: the Firebase plugin rewrites `127.0.0.1` to `10.0.2.2` on Android.
+
+All six tests should pass. The Emulator UI at http://localhost:4000 shows the accounts and documents they created.
+
+## Storage rules
+
+`storage.rules` is deployed with `firebase deploy --only storage --project kalinan-app`, which needs Cloud Storage, and therefore the Blaze plan. The first deploy asks to let Storage read Firestore (used to recognize researcher-admins); answer yes.

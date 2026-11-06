@@ -1,5 +1,31 @@
+import 'dart:math';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+
+/// A farmer login just created on the secondary app. Keep it until the
+/// profile is saved: [rollback] deletes the login if the save fails, so a
+/// dropped connection never leaves an account without a profile (whose
+/// email could then not be reused).
+class NewFarmerAccount {
+  NewFarmerAccount._(this.uid, this._user, this._auth);
+
+  final String uid;
+  final User _user;
+  final FirebaseAuth _auth;
+
+  /// Deletes the login. Allowed because it was created seconds ago.
+  Future<void> rollback() async {
+    try {
+      await _user.delete();
+    } finally {
+      await _auth.signOut();
+    }
+  }
+
+  /// Ends the secondary session once the profile is safely saved.
+  Future<void> finish() => _auth.signOut();
+}
 
 /// SOLO-DEV GOTCHA, SOLVED:
 /// Calling createUserWithEmailAndPassword on the default FirebaseAuth
@@ -7,10 +33,16 @@ import 'package:firebase_core/firebase_core.dart';
 /// would break the field-profiling flow after every saved profile.
 ///
 /// Fix: create farmer credentials on a SECONDARY Firebase app instance
-/// whose auth session is independent of the admin's. The secondary
-/// session is discarded immediately after the account is created.
+/// whose auth session is independent of the admin's.
 class AdminAccountService {
   static const _secondaryAppName = 'agrikonek-admin-secondary';
+
+  /// Set (in main.dart or a test) when the app runs against the Firebase
+  /// Emulator Suite, so farmer logins are also created in the emulator,
+  /// never in the real project.
+  static String? authEmulatorHost;
+  static int authEmulatorPort = 9099;
+  static bool _secondaryOnEmulator = false;
 
   Future<FirebaseApp> _secondaryApp() async {
     try {
@@ -24,40 +56,44 @@ class AdminAccountService {
     }
   }
 
-  /// Creates a Firebase Auth account for a farmer and returns the new uid.
-  /// The admin's own session is untouched.
-  Future<String> createFarmerAuthAccount({
+  /// Creates a Firebase Auth account for a farmer. The admin's own
+  /// session is untouched. Call [NewFarmerAccount.finish] after the
+  /// profile saves, or [NewFarmerAccount.rollback] if it fails.
+  Future<NewFarmerAccount> createFarmerAuthAccount({
     required String email,
     required String password,
   }) async {
     final app = await _secondaryApp();
     final secondaryAuth = FirebaseAuth.instanceFor(app: app);
+    final host = authEmulatorHost;
+    if (host != null && !_secondaryOnEmulator) {
+      await secondaryAuth.useAuthEmulator(host, authEmulatorPort);
+      _secondaryOnEmulator = true;
+    }
     try {
       final credential = await secondaryAuth.createUserWithEmailAndPassword(
         email: email.trim(),
         password: password,
       );
-      final uid = credential.user!.uid;
-      await secondaryAuth.signOut();
-      return uid;
+      final user = credential.user!;
+      return NewFarmerAccount._(user.uid, user, secondaryAuth);
     } on FirebaseAuthException {
       await secondaryAuth.signOut();
       rethrow;
     }
   }
 
-  /// Generates a simple printable starter password for the credential
-  /// slip handed to the farmer during the field visit (paper §3.4).
-  /// Avoids ambiguous characters (0/O, 1/l/I).
-  static String generateStarterPassword({int length = 8}) {
-    const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
-    final seed = DateTime.now().microsecondsSinceEpoch;
-    final buffer = StringBuffer();
-    var state = seed;
-    for (var i = 0; i < length; i++) {
-      state = (state * 1103515245 + 12345) & 0x7fffffff;
-      buffer.write(chars[state % chars.length]);
-    }
-    return buffer.toString();
+  /// Characters for the printable starter password on the credential slip
+  /// (paper §3.4). Ambiguous characters (0/O, 1/l/I) are left out.
+  static const passwordAlphabet = 'abcdefghjkmnpqrstuvwxyz23456789';
+
+  /// Random starter password from the operating system's secure random
+  /// source, so it cannot be guessed from the time it was made.
+  static String generateStarterPassword({int length = 8, Random? random}) {
+    final rng = random ?? Random.secure();
+    return List.generate(
+      length,
+      (_) => passwordAlphabet[rng.nextInt(passwordAlphabet.length)],
+    ).join();
   }
 }

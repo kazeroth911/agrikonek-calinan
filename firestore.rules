@@ -21,40 +21,211 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
+    // A hidden profile cannot receive new bids, barters or messages.
+    function isHidden(uid) {
+      return exists(/databases/$(database)/documents/hiddenProfiles/$(uid));
+    }
+
     // ---- profiles ------------------------------------------------------
-    // Read: any signed-in user (marketplace needs names/barangays).
-    // Create/full update: admin only (researcher-led profiling).
-    // Owners may update only their own non-privileged fields.
+    // Read: any signed-in user (marketplace needs names/barangays), except
+    // that a hidden profile is readable only by its owner, admins, and
+    // the phone-verified person whose number it carries (so that person
+    // can find and claim it). resource == null keeps "no profile yet"
+    // readable for the sign-in flow.
+    // Create/full update: admin only (researcher-led profiling), plus the
+    // profile claim below. Owners may update only their own
+    // non-privileged fields, which include hiding or unhiding themselves.
+    function verifiedPhone() {
+      return request.auth.token.get('phone_number', '');
+    }
+
+    // Profile claiming (paper §3.5.4), checked here instead of in a Cloud
+    // Function. A phone-verified user copies the researcher-prepared
+    // profile with the same number to their own account. The copy must be
+    // identical apart from the claim fields, and the prepared profile must
+    // be marked claimed by them in the same batch.
+    function isValidClaim(userId) {
+      let src = request.resource.data.get('claimedFrom', '');
+      let prepared = get(profilePath(src)).data;
+      return isOwner(userId)
+        && verifiedPhone() != ''
+        && src is string && src != '' && src != userId
+        && exists(profilePath(src))
+        && prepared.get('phone', '') == verifiedPhone()
+        && prepared.get('claimedBy', null) == null
+        && prepared.roles.get('admin', false) != true
+        && request.resource.data.diff(prepared).affectedKeys()
+             .hasOnly(['claimedFrom', 'claimedAt'])
+        && request.resource.data.claimedAt == request.time
+        && getAfter(profilePath(src)).data.get('claimedBy', '') == userId;
+    }
+
+    // The matching mark on the prepared profile.
+    function isClaimMark(userId) {
+      return isSignedIn()
+        && request.auth.uid != userId
+        && verifiedPhone() != ''
+        && resource.data.get('phone', '') == verifiedPhone()
+        && resource.data.get('claimedBy', null) == null
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['claimedBy', 'claimedAt'])
+        && request.resource.data.claimedBy == request.auth.uid
+        && request.resource.data.claimedAt == request.time
+        && getAfter(profilePath(request.auth.uid)).data.get('claimedFrom', '') == userId;
+    }
+
     match /profiles/{userId} {
-      allow read: if isSignedIn();
-      allow create, delete: if isAdmin();
+      allow read: if isSignedIn()
+        && (resource == null
+            || resource.data.get('hidden', false) != true
+            || isOwner(userId)
+            || isAdmin()
+            || (verifiedPhone() != ''
+                && resource.data.phone == verifiedPhone()));
+      allow create: if isAdmin() || isValidClaim(userId);
+      allow delete: if isAdmin();
       allow update: if isAdmin()
+        || isClaimMark(userId)
         || (isOwner(userId)
             && !request.resource.data.diff(resource.data)
-                 .affectedKeys().hasAny(['roles', 'createdAt', 'consentUrl']));
+                 .affectedKeys().hasAny(['roles', 'createdAt', 'consentUrl',
+                                         'consentGiven', 'verificationLevel',
+                                         'phone', 'cooperativeId',
+                                         'claimedBy', 'claimedFrom',
+                                         'claimedAt']));
+    }
+
+    // ---- cooperatives --------------------------------------------------
+    // Research partners that confirm members' profiles (C5, Table 3.4).
+    // Managed and read only by researcher-admins: the marketplace shows
+    // the "Cooperative-confirmed" mark, not the cooperative's name.
+    match /cooperatives/{cooperativeId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly(['name', 'barangay', 'createdAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.createdAt == request.time;
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['name', 'barangay'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 120;
+      allow delete: if isAdmin();
     }
 
     // ---- listings ------------------------------------------------------
+    // The owner's name and barangay are copied from their own profile, so
+    // nobody can post under another farmer's name. Owners may edit and
+    // close their listings but never hand them to another account.
+    function validListingFields(d) {
+      return d.title is string && d.title.size() > 0 && d.title.size() <= 120
+        && d.category is string
+        && (d.price == null || ((d.price is int || d.price is float) && d.price >= 0))
+        && d.modes is list && d.modes.size() > 0
+        && d.photoUrls is list && d.photoUrls.size() <= 4
+        && d.status in ['active', 'closed'];
+    }
+
     match /listings/{listingId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn()
-        && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if isSignedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerName
+             == get(profilePath(request.auth.uid)).data.fullName
+        && request.resource.data.ownerBarangay
+             == get(profilePath(request.auth.uid)).data.barangay
+        && request.resource.data.status == 'active'
+        && request.resource.data.createdAt == request.time
+        && validListingFields(request.resource.data);
+      allow update: if isSignedIn()
+        && (isAdmin()
+            || (resource.data.ownerId == request.auth.uid
+                && !request.resource.data.diff(resource.data).affectedKeys()
+                     .hasAny(['ownerId', 'ownerName', 'ownerBarangay', 'createdAt'])))
+        && validListingFields(request.resource.data);
+      allow delete: if isSignedIn()
         && (resource.data.ownerId == request.auth.uid || isAdmin());
     }
 
+    // ---- negotiation helpers (bids and barters) -------------------------
+    // The app's negotiation rules, enforced here too so a modified app
+    // cannot skip them:
+    //  - accepted and rejected are final;
+    //  - each move appends exactly one history entry, by the mover, and
+    //    never edits earlier entries;
+    //  - nobody can accept or reject their own last move. (Countering
+    //    is allowed for either side at any time, which is how a buyer
+    //    revises an open bid.)
+    //  - only the party who made the last move may withdraw it, while it
+    //    waits (paper §3.5.3); withdrawn is final too.
+    function listingPath(listingId) {
+      return /databases/$(database)/documents/listings/$(listingId);
+    }
+
+    function appendsOneEntryBy(uid) {
+      let before = resource.data.history;
+      let after = request.resource.data.history;
+      return after is list
+        && after.size() == before.size() + 1
+        && after[0:before.size()] == before
+        && after[after.size() - 1].byUserId == uid;
+    }
+
+    function lastActor() {
+      return resource.data.history[resource.data.history.size() - 1].byUserId;
+    }
+
+    function actionFor(status) {
+      return status == 'accepted' ? 'accept'
+        : (status == 'rejected' ? 'reject'
+          : (status == 'withdrawn' ? 'withdraw' : 'counter'));
+    }
+
+    function isValidMove() {
+      let to = request.resource.data.status;
+      let entry = request.resource.data.history[request.resource.data.history.size() - 1];
+      return resource.data.status in ['pending', 'countered']
+        && to in ['accepted', 'rejected', 'countered', 'withdrawn']
+        && appendsOneEntryBy(request.auth.uid)
+        && entry.action == actionFor(to)
+        && (to == 'countered'
+            || (to == 'withdrawn' && lastActor() == request.auth.uid)
+            || (to in ['accepted', 'rejected'] && lastActor() != request.auth.uid));
+    }
+
     // ---- offers (bids) -------------------------------------------------
-    // Visible only to buyer, listing owner, and admin.
+    // Visible only to buyer, listing owner, and admin. The seller must be
+    // the listing's real owner, and the listing must still be open.
     match /offers/{offerId} {
       allow read: if isSignedIn()
         && (resource.data.buyerId == request.auth.uid
             || resource.data.sellerId == request.auth.uid
             || isAdmin());
       allow create: if isSignedIn()
-        && request.resource.data.buyerId == request.auth.uid;
+        && request.resource.data.buyerId == request.auth.uid
+        && request.resource.data.sellerId
+             == get(listingPath(request.resource.data.listingId)).data.ownerId
+        && get(listingPath(request.resource.data.listingId)).data.status == 'active'
+        && request.resource.data.sellerId != request.auth.uid
+        && !isHidden(request.resource.data.sellerId)
+        && request.resource.data.status == 'pending'
+        && (request.resource.data.amount is int || request.resource.data.amount is float)
+        && request.resource.data.amount > 0
+        && request.resource.data.history.size() == 1
+        && request.resource.data.history[0].byUserId == request.auth.uid;
       allow update: if isSignedIn()
         && (resource.data.buyerId == request.auth.uid
-            || resource.data.sellerId == request.auth.uid);
+            || resource.data.sellerId == request.auth.uid)
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'amount', 'history', 'updatedAt'])
+        && isValidMove()
+        && (request.resource.data.status == 'countered'
+            ? ((request.resource.data.amount is int || request.resource.data.amount is float)
+               && request.resource.data.amount > 0)
+            : request.resource.data.amount == resource.data.amount);
     }
 
     // ---- barter proposals ----------------------------------------------
@@ -64,35 +235,205 @@ service cloud.firestore {
             || resource.data.ownerId == request.auth.uid
             || isAdmin());
       allow create: if isSignedIn()
-        && request.resource.data.proposerId == request.auth.uid;
+        && request.resource.data.proposerId == request.auth.uid
+        && request.resource.data.ownerId
+             == get(listingPath(request.resource.data.listingId)).data.ownerId
+        && get(listingPath(request.resource.data.listingId)).data.status == 'active'
+        && request.resource.data.ownerId != request.auth.uid
+        && !isHidden(request.resource.data.ownerId)
+        && request.resource.data.status == 'pending'
+        && request.resource.data.offeredItems.size() > 0
+        && request.resource.data.requestedItems.size() > 0
+        && request.resource.data.history.size() == 1
+        && request.resource.data.history[0].byUserId == request.auth.uid;
       allow update: if isSignedIn()
         && (resource.data.proposerId == request.auth.uid
-            || resource.data.ownerId == request.auth.uid);
+            || resource.data.ownerId == request.auth.uid)
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'history', 'updatedAt'])
+        && isValidMove();
     }
 
     // ---- conversations & messages --------------------------------------
+    // One thread per pair of users. The ID is the two UIDs sorted and
+    // joined with "_" (Conversation.idFor), so nobody can open a second
+    // thread with the same person or add a third participant.
+    function conversationPath(conversationId) {
+      return /databases/$(database)/documents/conversations/$(conversationId);
+    }
+
+    function isParticipant(conversationId) {
+      return isSignedIn()
+        && request.auth.uid in get(conversationPath(conversationId)).data.participantIds;
+    }
+
+    function otherParticipant(conversationId) {
+      let ids = get(conversationPath(conversationId)).data.participantIds;
+      return ids[0] == request.auth.uid ? ids[1] : ids[0];
+    }
+
     match /conversations/{conversationId} {
-      allow read, update: if isSignedIn()
-        && request.auth.uid in resource.data.participantIds;
+      // resource == null lets a user check whether a thread with someone
+      // exists yet. The ID is predictable, so this reveals nothing.
+      allow read: if isSignedIn()
+        && (resource == null || request.auth.uid in resource.data.participantIds);
+
       allow create: if isSignedIn()
-        && request.auth.uid in request.resource.data.participantIds;
+        && request.resource.data.keys().hasOnly([
+             'participantIds', 'participantNames', 'lastMessage', 'lastSenderId',
+             'unreadCounts', 'relatedListingId', 'relatedListingTitle', 'updatedAt'])
+        && request.resource.data.participantIds is list
+        && request.resource.data.participantIds.size() == 2
+        && request.auth.uid in request.resource.data.participantIds
+        && request.resource.data.participantIds[0] < request.resource.data.participantIds[1]
+        && conversationId == request.resource.data.participantIds[0]
+             + '_' + request.resource.data.participantIds[1]
+        && request.resource.data.lastMessage == null
+        && request.resource.data.updatedAt == request.time;
+
+      // Participants may update the preview, unread counts and listing,
+      // never who is in the thread or their names.
+      allow update: if isSignedIn()
+        && request.auth.uid in resource.data.participantIds
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+             'lastMessage', 'lastSenderId', 'unreadCounts', 'updatedAt',
+             'relatedListingId', 'relatedListingTitle'])
+        && (request.resource.data.lastMessage == null
+            || (request.resource.data.lastMessage is string
+                && request.resource.data.lastMessage.size() <= 200))
+        && (!('lastSenderId' in request.resource.data.diff(resource.data).affectedKeys())
+            || request.resource.data.lastSenderId == request.auth.uid);
+
+      allow delete: if false;
 
       match /messages/{messageId} {
-        allow read: if isSignedIn()
-          && request.auth.uid in
-             get(/databases/$(database)/documents/conversations/$(conversationId))
-               .data.participantIds;
-        allow create: if isSignedIn()
-          && request.resource.data.senderId == request.auth.uid;
-        allow update: if isSignedIn(); // readBy updates
+        allow read: if isParticipant(conversationId);
+
+        // Text only for now; messages cannot be edited or deleted.
+        allow create: if isParticipant(conversationId)
+          && !isHidden(otherParticipant(conversationId))
+          && request.resource.data.keys().hasOnly([
+               'senderId', 'text', 'attachmentUrl', 'sentAt', 'readBy'])
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 1000
+          && request.resource.data.attachmentUrl == null
+          && request.resource.data.readBy == [request.auth.uid]
+          && request.resource.data.sentAt == request.time;
+
+        allow update, delete: if false;
       }
     }
 
     // ---- notifications --------------------------------------------------
+    // The app writes one record per negotiation move; the Cloud Function
+    // sendPushOnNotification then sends the FCM push (DFD process 6.0).
+    // A user may only notify the other party of a bid, barter or chat
+    // they are actually part of, so nobody can spam arbitrary accounts.
+    function docData(path) {
+      return get(path).data;
+    }
+
+    function isPair(a, b, x, y) {
+      return (a == x && b == y) || (a == y && b == x);
+    }
+
+    function validNotificationShape(d) {
+      return d.keys().hasOnly(['recipientId', 'senderId', 'type', 'payload', 'read', 'createdAt'])
+        && d.keys().hasAll(['recipientId', 'senderId', 'type', 'payload', 'read', 'createdAt'])
+        && d.senderId == request.auth.uid
+        && d.recipientId is string
+        && d.recipientId != request.auth.uid
+        && d.type in ['bid', 'barter', 'msg', 'admin']
+        && d.payload is map
+        && d.read == false
+        && d.createdAt == request.time;
+    }
+
+    function senderIsParty(d) {
+      return (d.type == 'bid'
+          && isPair(d.senderId, d.recipientId,
+               docData(/databases/$(database)/documents/offers/$(d.payload.offerId)).buyerId,
+               docData(/databases/$(database)/documents/offers/$(d.payload.offerId)).sellerId))
+        || (d.type == 'barter'
+          && isPair(d.senderId, d.recipientId,
+               docData(/databases/$(database)/documents/barterProposals/$(d.payload.barterId)).proposerId,
+               docData(/databases/$(database)/documents/barterProposals/$(d.payload.barterId)).ownerId))
+        || (d.type == 'msg'
+          && d.senderId in docData(/databases/$(database)/documents/conversations/$(d.payload.conversationId)).participantIds
+          && d.recipientId in docData(/databases/$(database)/documents/conversations/$(d.payload.conversationId)).participantIds)
+        || (d.type == 'admin' && isAdmin());
+    }
+
     match /notifications/{notificationId} {
-      allow read, update: if isSignedIn()
+      allow read: if isSignedIn()
         && resource.data.recipientId == request.auth.uid;
-      allow create: if isSignedIn();
+      // Only the recipient can change read from false to true.
+      allow update: if isSignedIn()
+        && resource.data.recipientId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+        && request.resource.data.read == true;
+      allow create: if isSignedIn()
+        && validNotificationShape(request.resource.data)
+        && senderIsParty(request.resource.data);
+      allow delete: if false;
+    }
+
+    // ---- announcements ----------------------------------------------------
+    // Sent history for researcher-admins. Recipients read the text from
+    // their own 'admin' notification, not from here.
+    match /announcements/{announcementId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly([
+             'title', 'body', 'audience', 'barangay', 'recipientCount',
+             'sentBy', 'sentByName', 'createdAt'])
+        && request.resource.data.sentBy == request.auth.uid
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 80
+        && request.resource.data.body is string
+        && request.resource.data.body.size() > 0
+        && request.resource.data.body.size() <= 500
+        && request.resource.data.audience in ['all', 'barangay', 'selected']
+        && request.resource.data.recipientCount is int
+        && request.resource.data.recipientCount > 0
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    // ---- hidden profiles -----------------------------------------------
+    // Public list of hidden account IDs (no personal details), so every
+    // user's app can filter them out. Written together with the profile's
+    // own hidden flag by its owner or an admin.
+    match /hiddenProfiles/{userId} {
+      allow read: if isSignedIn();
+      allow create, update: if (isOwner(userId) || isAdmin())
+        && request.resource.data.keys().hasOnly(['hiddenAt', 'hiddenBy'])
+        && request.resource.data.hiddenBy == request.auth.uid
+        && request.resource.data.hiddenAt == request.time;
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    // ---- private FCM device tokens -------------------------------------
+    // Each signed-in user can manage only their own device registrations.
+    match /deviceTokens/{userId}/tokens/{tokenId} {
+      allow read: if isOwner(userId);
+
+      allow create, update: if isOwner(userId)
+        && request.resource.data.keys().hasOnly([
+          'token', 'platform', 'updatedAt', 'language'
+        ])
+        && request.resource.data.get('language', 'en') in ['en', 'ceb']
+        && request.resource.data.keys().hasAll([
+          'token', 'platform', 'updatedAt'
+        ])
+        && request.resource.data.token is string
+        && request.resource.data.platform == 'android'
+        && request.resource.data.updatedAt is timestamp;
+
+      allow delete: if isOwner(userId);
     }
   }
 }

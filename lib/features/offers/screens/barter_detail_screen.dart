@@ -4,8 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/barter_proposal.dart';
 import '../../../services/barter_repository.dart';
 import '../../auth/providers/auth_providers.dart';
+import '../../chat/chat_launcher.dart';
+import '../../profile/providers/visibility_providers.dart';
+import '../../profile/widgets/profile_unavailable_banner.dart';
 import '../providers/barter_providers.dart';
+import '../widgets/mark_sold_prompt.dart';
 import '../widgets/negotiation_widgets.dart';
+import '../../../core/l10n/app_language.dart';
 
 /// Live view of one barter negotiation: offered vs requested items,
 /// note, history with counter notes, and Accept / Reject / Counter for
@@ -30,11 +35,35 @@ class _BarterDetailScreenState extends ConsumerState<BarterDetailScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Action failed / Wala midagan: $e')));
+            SnackBar(
+                content: Text(
+                    '${context.tr('Action failed', 'Wala midagan')}: $e')));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<bool> _confirmWithdraw() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.tr(
+            'Withdraw your proposal?', 'Bawion ang imong tanyag?')),
+        content: Text(context.tr(
+            'The other party will be told, and this negotiation will end.',
+            'Mahibal-an sa pikas, ug matapos na kini nga tawaran.')),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(context.tr('CANCEL', 'KANSELAHON'))),
+          FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(context.tr('WITHDRAW', 'BAWION'))),
+        ],
+      ),
+    );
+    return ok == true;
   }
 
   Future<void> _counterDialog(BarterProposal proposal, String uid) async {
@@ -42,28 +71,31 @@ class _BarterDetailScreenState extends ConsumerState<BarterDetailScreen> {
     final note = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Counter the trade / I-counter ang baylo'),
+        title: Text(context.tr('Counter the trade', 'I-counter ang baylo')),
         content: TextField(
           controller: controller,
           autofocus: true,
           maxLines: 3,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(
-            labelText: 'Describe your counter / Isulat ang imong counter',
-            hintText: 'e.g. 2 sacks of compost instead of 1, pickup here',
+          decoration: InputDecoration(
+            labelText: context.tr(
+                'Describe your counter', 'Isulat ang imong counter'),
+            hintText: context.tr(
+                'e.g. 2 sacks of compost instead of 1, pickup here',
+                'pananglitan: 2 ka sako nga abono imbes 1, kuhaon diri'),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('CANCEL'),
+            child: Text(context.tr('CANCEL', 'KANSELAHON')),
           ),
           TextButton(
             onPressed: () {
               final text = controller.text.trim();
               if (text.isNotEmpty) Navigator.of(context).pop(text);
             },
-            child: const Text('SEND COUNTER'),
+            child: Text(context.tr('SEND COUNTER', 'IPADALA')),
           ),
         ],
       ),
@@ -81,18 +113,36 @@ class _BarterDetailScreenState extends ConsumerState<BarterDetailScreen> {
     final uid = ref.watch(authStateProvider).valueOrNull?.uid;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Barter / Baylo')),
+      appBar: AppBar(
+        title: Text(context.tr('Barter', 'Baylo')),
+        actions: [
+          if (barterAsync.valueOrNull case final proposal?
+              when uid != null &&
+                  !ref.watch(isProfileHiddenProvider(uid == proposal.proposerId
+                      ? proposal.ownerId
+                      : proposal.proposerId)))
+            MessageIconButton(
+              otherId: uid == proposal.proposerId
+                  ? proposal.ownerId
+                  : proposal.proposerId,
+              listingId: proposal.listingId,
+              listingTitle: proposal.listingTitle,
+            ),
+        ],
+      ),
       body: barterAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => NegotiationListMessage(
           icon: Icons.cloud_off,
-          text: 'Could not load this barter.\n$e',
+          text:
+              '${context.tr('Could not load this barter.', 'Wala ma-load kini nga baylo.')}\n$e',
         ),
         data: (proposal) {
           if (proposal == null || uid == null) {
-            return const NegotiationListMessage(
+            return NegotiationListMessage(
               icon: Icons.search_off,
-              text: 'This proposal no longer exists. / Wala na kini.',
+              text: context.tr('This proposal no longer exists.',
+                  'Wala na kini nga tanyag sa baylo.'),
             );
           }
           return _body(context, proposal, uid);
@@ -104,30 +154,38 @@ class _BarterDetailScreenState extends ConsumerState<BarterDetailScreen> {
   Widget _body(BuildContext context, BarterProposal proposal, String uid) {
     final theme = Theme.of(context);
     final isProposer = uid == proposal.proposerId;
-    final canAct = BarterRepository.canAct(proposal, uid);
+    final otherHidden = ref.watch(isProfileHiddenProvider(
+        isProposer ? proposal.ownerId : proposal.proposerId));
+    final canAct = BarterRepository.canAct(proposal, uid) && !otherHidden;
 
     // Item directions are written from the proposer's point of view;
     // flip the headings for the listing owner.
     final givesHeading = isProposer
-        ? 'You give / Imong ihatag'
-        : 'They give / Ilang ihatag';
+        ? context.tr('You give', 'Imong ihatag')
+        : context.tr('They give', 'Ilang ihatag');
     final receivesHeading = isProposer
-        ? 'You receive / Imong madawat'
-        : 'They want / Ilang gusto';
+        ? context.tr('You receive', 'Imong madawat')
+        : context.tr('They want', 'Ilang gusto');
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        if (otherHidden) ...[
+          ProfileUnavailableBanner(
+              detail: context.tr('This barter can no longer be answered.',
+                  'Dili na matubag kini nga baylo.')),
+          const SizedBox(height: 16),
+        ],
         Text(
             proposal.listingTitle.isEmpty
-                ? 'Listing'
+                ? context.tr('Listing', 'Baligya')
                 : proposal.listingTitle,
             style: theme.textTheme.titleLarge),
         const SizedBox(height: 4),
         Text(isProposer
-            ? 'You proposed this trade. / Ikaw ang nagtanyag.'
-            : 'Someone proposed a trade on your listing. / Adunay '
-                'nagtanyag og baylo sa imong baligya.'),
+            ? context.tr('You proposed this trade.', 'Ikaw ang nagtanyag.')
+            : context.tr('Someone proposed a trade on your listing.',
+                'Adunay nagtanyag og baylo sa imong baligya.')),
         const SizedBox(height: 8),
         StatusChip(statusName: proposal.status.name),
         const SizedBox(height: 16),
@@ -147,12 +205,16 @@ class _BarterDetailScreenState extends ConsumerState<BarterDetailScreen> {
         ],
         const SizedBox(height: 16),
         if (proposal.history.isNotEmpty) ...[
-          Text('History / Kasaysayan', style: theme.textTheme.titleMedium),
+          Text(context.tr('History', 'Kasaysayan'),
+              style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           for (final entry in proposal.history.reversed)
             _HistoryTile(entry: entry, proposal: proposal, viewerUid: uid),
           const SizedBox(height: 16),
         ],
+        if (proposal.status == BarterStatus.accepted)
+          MarkSoldPrompt(
+              listingId: proposal.listingId, ownerId: proposal.ownerId),
         if (canAct) ...[
           FilledButton.icon(
             onPressed: _busy
@@ -161,13 +223,13 @@ class _BarterDetailScreenState extends ConsumerState<BarterDetailScreen> {
                     .read(barterControllerProvider)
                     .accept(proposal: proposal, byUserId: uid)),
             icon: const Icon(Icons.check),
-            label: const Text('Accept Trade / Dawata ang Baylo'),
+            label: Text(context.tr('Accept Trade', 'Dawata ang Baylo')),
           ),
           const SizedBox(height: 12),
           FilledButton.tonalIcon(
             onPressed: _busy ? null : () => _counterDialog(proposal, uid),
             icon: const Icon(Icons.swap_horiz),
-            label: const Text('Counter / Mag-counter'),
+            label: Text(context.tr('Counter', 'Mag-counter')),
           ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
@@ -177,20 +239,37 @@ class _BarterDetailScreenState extends ConsumerState<BarterDetailScreen> {
                     .read(barterControllerProvider)
                     .reject(proposal: proposal, byUserId: uid)),
             icon: const Icon(Icons.close),
-            label: const Text('Reject / Balibari'),
+            label: Text(context.tr('Decline', 'Balibari')),
           ),
         ] else if (proposal.status == BarterStatus.pending ||
-            proposal.status == BarterStatus.countered)
+            proposal.status == BarterStatus.countered) ...[
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Text(
-                'Waiting for the other party to respond. / Naghulat sa '
-                'tubag sa pikas.',
+                context.tr('Waiting for the other party to respond.',
+                    'Naghulat sa tubag sa pikas.'),
                 style: theme.textTheme.bodyMedium,
               ),
             ),
           ),
+          if (BarterRepository.canWithdraw(proposal, uid)) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _busy
+                  ? null
+                  : () async {
+                      if (!await _confirmWithdraw()) return;
+                      await _run(() => ref
+                          .read(barterControllerProvider)
+                          .withdraw(proposal: proposal, byUserId: uid));
+                    },
+              icon: const Icon(Icons.undo),
+              label: Text(context.tr(
+                  'Withdraw my proposal', 'Bawion ang akong tanyag')),
+            ),
+          ],
+        ],
         if (_busy)
           const Padding(
             padding: EdgeInsets.only(top: 16),
@@ -253,10 +332,10 @@ class _HistoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final who = entry.byUserId == viewerUid
-        ? 'You / Ikaw'
+        ? context.tr('You', 'Ikaw')
         : entry.byUserId == proposal.proposerId
-            ? 'Proposer / Nagtanyag'
-            : 'Owner / Tag-iya';
+            ? context.tr('Proposer', 'Nagtanyag')
+            : context.tr('Owner', 'Tag-iya');
 
     return Card(
       child: ListTile(
@@ -266,7 +345,7 @@ class _HistoryTile extends StatelessWidget {
           'counter' => Icons.swap_horiz,
           _ => Icons.handshake,
         }),
-        title: Text('$who ${negotiationActionLabel(entry.action)}'),
+        title: Text('$who ${negotiationActionLabel(context.language, entry.action)}'),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

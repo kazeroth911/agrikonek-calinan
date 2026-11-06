@@ -26,13 +26,22 @@ class OfferRepository {
   /// a fresh bid (empty-history fallback) is the seller's move.
   static bool canAct(Offer offer, String uid) {
     if (uid != offer.buyerId && uid != offer.sellerId) return false;
-    if (offer.status == OfferStatus.accepted ||
-        offer.status == OfferStatus.rejected) {
-      return false;
-    }
-    final lastActor =
-        offer.history.isEmpty ? offer.buyerId : offer.history.last.byUserId;
-    return lastActor != uid;
+    if (!_isOpen(offer.status)) return false;
+    return lastActor(offer) != uid;
+  }
+
+  static bool _isOpen(OfferStatus s) =>
+      s == OfferStatus.pending || s == OfferStatus.countered;
+
+  /// Who made the last move. A fresh bid with no history is the buyer's.
+  static String lastActor(Offer offer) =>
+      offer.history.isEmpty ? offer.buyerId : offer.history.last.byUserId;
+
+  /// Paper §3.5.3: the party who made the last offer may withdraw it
+  /// while it is waiting for the other party.
+  static bool canWithdraw(Offer offer, String uid) {
+    if (uid != offer.buyerId && uid != offer.sellerId) return false;
+    return _isOpen(offer.status) && lastActor(offer) == uid;
   }
 
   /// Builds the Firestore update map for a status change, gated by the
@@ -59,6 +68,7 @@ class OfferRepository {
       OfferStatus.accepted => 'accept',
       OfferStatus.rejected => 'reject',
       OfferStatus.countered => 'counter',
+      OfferStatus.withdrawn => 'withdraw',
       OfferStatus.pending => 'bid',
     };
     final amount =
